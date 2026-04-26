@@ -5,61 +5,511 @@
   "processed_samples": [
     {
       "sample_index": 1,
-      "cam_front_token": "e3d495d4ac534d54b321f50006683844",
+      "cam_front_token": "a1e3e016cc5442b7b9c84652615b24f7",
       "output_file": "lidar_clusters_sample_1.json",
-      "raw_boxes": 5,
-      "kept_boxes": 3,
-      "raw_points": 693,
-      "dbscan_points": 693,
-      "kept_points": 680
+      "raw_boxes": 7,
+      "kept_boxes": 2,
+      "raw_points": 71,
+      "dbscan_points": 43,
+      "kept_points": 30
     },
     {
       "sample_index": 2,
-      "cam_front_token": "4b6870ae200c4b969b91c50a9737f712",
+      "cam_front_token": "358ec472650f42d4b6c27686ee2e0d39",
       "output_file": "lidar_clusters_sample_2.json",
-      "raw_boxes": 7,
-      "kept_boxes": 4,
-      "raw_points": 785,
-      "dbscan_points": 785,
-      "kept_points": 762
+      "raw_boxes": 3,
+      "kept_boxes": 0,
+      "raw_points": 0,
+      "dbscan_points": 0,
+      "kept_points": 0
     },
     {
       "sample_index": 3,
-      "cam_front_token": "d0d9ef23e3934ea09d55afdc24db9827",
+      "cam_front_token": "e41335fbfc1645faa5a532a62df1fe68",
       "output_file": "lidar_clusters_sample_3.json",
       "raw_boxes": 7,
-      "kept_boxes": 5,
-      "raw_points": 698,
-      "dbscan_points": 698,
-      "kept_points": 689
+      "kept_boxes": 3,
+      "raw_points": 200,
+      "dbscan_points": 131,
+      "kept_points": 125
     },
     {
       "sample_index": 4,
-      "cam_front_token": "74e7a9260c5d45b78b831528b62daf41",
+      "cam_front_token": "6e76f277e47547bca0e38099ce01da54",
       "output_file": "lidar_clusters_sample_4.json",
-      "raw_boxes": 8,
-      "kept_boxes": 5,
-      "raw_points": 272,
-      "dbscan_points": 272,
-      "kept_points": 266
+      "raw_boxes": 1,
+      "kept_boxes": 1,
+      "raw_points": 77,
+      "dbscan_points": 48,
+      "kept_points": 48
     },
     {
       "sample_index": 5,
-      "cam_front_token": "21ca7cbfbde14f088143cf001570d01b",
+      "cam_front_token": "706bc4ecedb1483485dd25b2cdb79b1e",
       "output_file": "lidar_clusters_sample_5.json",
-      "raw_boxes": 5,
+      "raw_boxes": 4,
+      "kept_boxes": 2,
+      "raw_points": 49,
+      "dbscan_points": 24,
+      "kept_points": 24
+    },
+    {
+      "sample_index": 6,
+      "cam_front_token": "029dc949763249ddbeb3f756cb7b259f",
+      "output_file": "lidar_clusters_sample_6.json",
+      "raw_boxes": 7,
+      "kept_boxes": 2,
+      "raw_points": 119,
+      "dbscan_points": 68,
+      "kept_points": 68
+    },
+    {
+      "sample_index": 7,
+      "cam_front_token": "6a153bf7ebf845198322a0ecdaaea525",
+      "output_file": "lidar_clusters_sample_7.json",
+      "raw_boxes": 6,
+      "kept_boxes": 1,
+      "raw_points": 21,
+      "dbscan_points": 21,
+      "kept_points": 12
+    },
+    {
+      "sample_index": 8,
+      "cam_front_token": "5c430f75813e4eeb8375623c95d3a615",
+      "output_file": "lidar_clusters_sample_8.json",
+      "raw_boxes": 12,
+      "kept_boxes": 5,
+      "raw_points": 348,
+      "dbscan_points": 235,
+      "kept_points": 205
+    },
+    {
+      "sample_index": 9,
+      "cam_front_token": "4118ce9345274dd2a344391bfbd42b8c",
+      "output_file": "lidar_clusters_sample_9.json",
+      "raw_boxes": 2,
+      "kept_boxes": 0,
+      "raw_points": 0,
+      "dbscan_points": 0,
+      "kept_points": 0
+    },
+    {
+      "sample_index": 10,
+      "cam_front_token": "42563f19747741318b4983bbc61a47b1",
+      "output_file": "lidar_clusters_sample_10.json",
+      "raw_boxes": 9,
+      "kept_boxes": 2,
+      "raw_points": 188,
+      "dbscan_points": 137,
+      "kept_points": 114
+    },
+    {
+      "sample_index": 11,
+      "cam_front_token": "709c0afde9fa407ca2d077e4eb1c95c2",
+      "output_file": "lidar_clusters_sample_11.json",
+      "raw_boxes": 14,
       "kept_boxes": 4,
+      "raw_points": 271,
+      "dbscan_points": 158,
+      "kept_points": 123
+    },
+    {
+      "sample_index": 12,
+      "cam_front_token": "0113899528c54aa5b573e083ea4086b2",
+      "output_file": "lidar_clusters_sample_12.json",
+      "raw_boxes": 4,
+      "kept_boxes": 1,
+      "raw_points": 35,
+      "dbscan_points": 20,
+      "kept_points": 15
+    },
+    {
+      "sample_index": 13,
+      "cam_front_token": "95c58e12ca3d488b8101ff7f15737eb8",
+      "output_file": "lidar_clusters_sample_13.json",
+      "raw_boxes": 3,
+      "kept_boxes": 3,
+      "raw_points": 830,
+      "dbscan_points": 627,
+      "kept_points": 627
+    },
+    {
+      "sample_index": 14,
+      "cam_front_token": "1afba7064f794174a68582db8e099c80",
+      "output_file": "lidar_clusters_sample_14.json",
+      "raw_boxes": 16,
+      "kept_boxes": 6,
+      "raw_points": 424,
+      "dbscan_points": 310,
+      "kept_points": 296
+    },
+    {
+      "sample_index": 15,
+      "cam_front_token": "cd8a6fbb4c0a42138792b0b3515b363b",
+      "output_file": "lidar_clusters_sample_15.json",
+      "raw_boxes": 3,
+      "kept_boxes": 0,
+      "raw_points": 0,
+      "dbscan_points": 0,
+      "kept_points": 0
+    },
+    {
+      "sample_index": 16,
+      "cam_front_token": "1a91b5a0d17840ac98fcd256523bf9ad",
+      "output_file": "lidar_clusters_sample_16.json",
+      "raw_boxes": 7,
+      "kept_boxes": 2,
+      "raw_points": 103,
+      "dbscan_points": 64,
+      "kept_points": 49
+    },
+    {
+      "sample_index": 17,
+      "cam_front_token": "c9d8cf50e42b47fa9a0bbd923e5e9c30",
+      "output_file": "lidar_clusters_sample_17.json",
+      "raw_boxes": 6,
+      "kept_boxes": 6,
+      "raw_points": 896,
+      "dbscan_points": 708,
+      "kept_points": 708
+    },
+    {
+      "sample_index": 18,
+      "cam_front_token": "92f4ee9bea444cfba6ddde21cbb47f06",
+      "output_file": "lidar_clusters_sample_18.json",
+      "raw_boxes": 18,
+      "kept_boxes": 9,
+      "raw_points": 453,
+      "dbscan_points": 328,
+      "kept_points": 301
+    },
+    {
+      "sample_index": 19,
+      "cam_front_token": "e26810c28df44cefa069778865bd832c",
+      "output_file": "lidar_clusters_sample_19.json",
+      "raw_boxes": 5,
+      "kept_boxes": 3,
+      "raw_points": 254,
+      "dbscan_points": 152,
+      "kept_points": 139
+    },
+    {
+      "sample_index": 20,
+      "cam_front_token": "a3e361c213684133a4c73f432928f4a0",
+      "output_file": "lidar_clusters_sample_20.json",
+      "raw_boxes": 5,
+      "kept_boxes": 0,
+      "raw_points": 7,
+      "dbscan_points": 7,
+      "kept_points": 0
+    },
+    {
+      "sample_index": 21,
+      "cam_front_token": "8f4376cb2da3448abf42221512917c4d",
+      "output_file": "lidar_clusters_sample_21.json",
+      "raw_boxes": 2,
+      "kept_boxes": 0,
+      "raw_points": 1,
+      "dbscan_points": 1,
+      "kept_points": 0
+    },
+    {
+      "sample_index": 22,
+      "cam_front_token": "19f4244aa37b42a49a005b8ea6d53953",
+      "output_file": "lidar_clusters_sample_22.json",
+      "raw_boxes": 4,
+      "kept_boxes": 3,
+      "raw_points": 218,
+      "dbscan_points": 127,
+      "kept_points": 126
+    },
+    {
+      "sample_index": 23,
+      "cam_front_token": "8464c748ca5f460dba24b50a233692e4",
+      "output_file": "lidar_clusters_sample_23.json",
+      "raw_boxes": 13,
+      "kept_boxes": 2,
+      "raw_points": 147,
+      "dbscan_points": 76,
+      "kept_points": 36
+    },
+    {
+      "sample_index": 24,
+      "cam_front_token": "8ba2ea656c09414c90b1a5d4b6f4130b",
+      "output_file": "lidar_clusters_sample_24.json",
+      "raw_boxes": 16,
+      "kept_boxes": 6,
+      "raw_points": 555,
+      "dbscan_points": 326,
+      "kept_points": 298
+    },
+    {
+      "sample_index": 25,
+      "cam_front_token": "092cdc4f4b8c41568ad30f0235556538",
+      "output_file": "lidar_clusters_sample_25.json",
+      "raw_boxes": 6,
+      "kept_boxes": 3,
+      "raw_points": 1087,
+      "dbscan_points": 848,
+      "kept_points": 848
+    },
+    {
+      "sample_index": 26,
+      "cam_front_token": "fb4c4b4725b542a39bd4e165ebb60950",
+      "output_file": "lidar_clusters_sample_26.json",
+      "raw_boxes": 5,
+      "kept_boxes": 2,
+      "raw_points": 74,
+      "dbscan_points": 55,
+      "kept_points": 52
+    },
+    {
+      "sample_index": 27,
+      "cam_front_token": "9ac08955983e41ea8f4bf16b49bfa79c",
+      "output_file": "lidar_clusters_sample_27.json",
+      "raw_boxes": 2,
+      "kept_boxes": 1,
+      "raw_points": 13,
+      "dbscan_points": 11,
+      "kept_points": 11
+    },
+    {
+      "sample_index": 28,
+      "cam_front_token": "fc4cba53bd2c4923b17da19b2e6e44fa",
+      "output_file": "lidar_clusters_sample_28.json",
+      "raw_boxes": 8,
+      "kept_boxes": 3,
+      "raw_points": 384,
+      "dbscan_points": 211,
+      "kept_points": 201
+    },
+    {
+      "sample_index": 29,
+      "cam_front_token": "5f413725e3d84fbc987d7f6b521bcf95",
+      "output_file": "lidar_clusters_sample_29.json",
+      "raw_boxes": 3,
+      "kept_boxes": 1,
+      "raw_points": 26,
+      "dbscan_points": 25,
+      "kept_points": 16
+    },
+    {
+      "sample_index": 30,
+      "cam_front_token": "bd0ce9c48550446fa13676c7703a70c1",
+      "output_file": "lidar_clusters_sample_30.json",
+      "raw_boxes": 2,
+      "kept_boxes": 0,
+      "raw_points": 0,
+      "dbscan_points": 0,
+      "kept_points": 0
+    },
+    {
+      "sample_index": 31,
+      "cam_front_token": "16a5fb2fe7dd44db92a77ac3a333f277",
+      "output_file": "lidar_clusters_sample_31.json",
+      "raw_boxes": 4,
+      "kept_boxes": 2,
+      "raw_points": 394,
+      "dbscan_points": 335,
+      "kept_points": 331
+    },
+    {
+      "sample_index": 32,
+      "cam_front_token": "aaeca9b158db49e697a4fc155f783dfa",
+      "output_file": "lidar_clusters_sample_32.json",
+      "raw_boxes": 10,
+      "kept_boxes": 2,
+      "raw_points": 384,
+      "dbscan_points": 263,
+      "kept_points": 231
+    },
+    {
+      "sample_index": 33,
+      "cam_front_token": "87723668b00f419ba263ab062d14bd13",
+      "output_file": "lidar_clusters_sample_33.json",
+      "raw_boxes": 13,
+      "kept_boxes": 4,
+      "raw_points": 575,
+      "dbscan_points": 414,
+      "kept_points": 389
+    },
+    {
+      "sample_index": 34,
+      "cam_front_token": "9403a41ce7944d8f9d5966165f82c806",
+      "output_file": "lidar_clusters_sample_34.json",
+      "raw_boxes": 2,
+      "kept_boxes": 0,
+      "raw_points": 5,
+      "dbscan_points": 5,
+      "kept_points": 0
+    },
+    {
+      "sample_index": 35,
+      "cam_front_token": "ad609ca688444331b3218f664d644473",
+      "output_file": "lidar_clusters_sample_35.json",
+      "raw_boxes": 8,
+      "kept_boxes": 5,
+      "raw_points": 265,
+      "dbscan_points": 140,
+      "kept_points": 132
+    },
+    {
+      "sample_index": 36,
+      "cam_front_token": "5e862f5aad0444f199824efc78edfff0",
+      "output_file": "lidar_clusters_sample_36.json",
+      "raw_boxes": 3,
+      "kept_boxes": 1,
+      "raw_points": 12,
+      "dbscan_points": 12,
+      "kept_points": 12
+    },
+    {
+      "sample_index": 37,
+      "cam_front_token": "defde01fa5594f18b24be8fe68e6f2c4",
+      "output_file": "lidar_clusters_sample_37.json",
+      "raw_boxes": 5,
+      "kept_boxes": 1,
+      "raw_points": 97,
+      "dbscan_points": 44,
+      "kept_points": 23
+    },
+    {
+      "sample_index": 38,
+      "cam_front_token": "6bd85a6773944798ae0be117d40d4fdc",
+      "output_file": "lidar_clusters_sample_38.json",
+      "raw_boxes": 3,
+      "kept_boxes": 3,
+      "raw_points": 930,
+      "dbscan_points": 727,
+      "kept_points": 727
+    },
+    {
+      "sample_index": 39,
+      "cam_front_token": "67eddb8ae05b430396df053609015702",
+      "output_file": "lidar_clusters_sample_39.json",
+      "raw_boxes": 7,
+      "kept_boxes": 2,
+      "raw_points": 67,
+      "dbscan_points": 34,
+      "kept_points": 26
+    },
+    {
+      "sample_index": 40,
+      "cam_front_token": "b71a3ed2e4cc4c3b9add0925bcefe743",
+      "output_file": "lidar_clusters_sample_40.json",
+      "raw_boxes": 4,
+      "kept_boxes": 1,
+      "raw_points": 31,
+      "dbscan_points": 28,
+      "kept_points": 20
+    },
+    {
+      "sample_index": 41,
+      "cam_front_token": "23377008bf0e4963b2f250660894e337",
+      "output_file": "lidar_clusters_sample_41.json",
+      "raw_boxes": 6,
+      "kept_boxes": 4,
+      "raw_points": 93,
+      "dbscan_points": 75,
+      "kept_points": 67
+    },
+    {
+      "sample_index": 42,
+      "cam_front_token": "81b6368f6af9417684cefeb6661a14e7",
+      "output_file": "lidar_clusters_sample_42.json",
+      "raw_boxes": 9,
+      "kept_boxes": 4,
+      "raw_points": 230,
+      "dbscan_points": 167,
+      "kept_points": 149
+    },
+    {
+      "sample_index": 43,
+      "cam_front_token": "36653d8ce5bc4abc81ada795c6b33031",
+      "output_file": "lidar_clusters_sample_43.json",
+      "raw_boxes": 4,
+      "kept_boxes": 0,
+      "raw_points": 1,
+      "dbscan_points": 1,
+      "kept_points": 0
+    },
+    {
+      "sample_index": 44,
+      "cam_front_token": "5979f20786b745c5b05c21d8badc2ed8",
+      "output_file": "lidar_clusters_sample_44.json",
+      "raw_boxes": 3,
+      "kept_boxes": 3,
+      "raw_points": 806,
+      "dbscan_points": 625,
+      "kept_points": 625
+    },
+    {
+      "sample_index": 45,
+      "cam_front_token": "78c6783107c4461e830783480eeda657",
+      "output_file": "lidar_clusters_sample_45.json",
+      "raw_boxes": 9,
+      "kept_boxes": 1,
+      "raw_points": 55,
+      "dbscan_points": 36,
+      "kept_points": 12
+    },
+    {
+      "sample_index": 46,
+      "cam_front_token": "5a030cc9599c4c7dbf334ac0dacbfd4e",
+      "output_file": "lidar_clusters_sample_46.json",
+      "raw_boxes": 4,
+      "kept_boxes": 2,
+      "raw_points": 119,
+      "dbscan_points": 88,
+      "kept_points": 85
+    },
+    {
+      "sample_index": 47,
+      "cam_front_token": "be0d41d37aac4b3c9771e1bafe72ff41",
+      "output_file": "lidar_clusters_sample_47.json",
+      "raw_boxes": 3,
+      "kept_boxes": 2,
+      "raw_points": 72,
+      "dbscan_points": 38,
+      "kept_points": 37
+    },
+    {
+      "sample_index": 48,
+      "cam_front_token": "c7f783fe8173446383bfbbb7a783517f",
+      "output_file": "lidar_clusters_sample_48.json",
+      "raw_boxes": 5,
+      "kept_boxes": 5,
+      "raw_points": 698,
+      "dbscan_points": 596,
+      "kept_points": 596
+    },
+    {
+      "sample_index": 49,
+      "cam_front_token": "21ca7cbfbde14f088143cf001570d01b",
+      "output_file": "lidar_clusters_sample_49.json",
+      "raw_boxes": 5,
+      "kept_boxes": 3,
       "raw_points": 102,
-      "dbscan_points": 102,
-      "kept_points": 98
+      "dbscan_points": 71,
+      "kept_points": 60
+    },
+    {
+      "sample_index": 50,
+      "cam_front_token": "da6036375a984bbdaca70ffc9966337e",
+      "output_file": "lidar_clusters_sample_50.json",
+      "raw_boxes": 4,
+      "kept_boxes": 1,
+      "raw_points": 50,
+      "dbscan_points": 44,
+      "kept_points": 41
     }
   ],
   "totals": {
-    "samples": 5,
-    "raw_boxes": 32,
-    "kept_boxes": 21,
-    "raw_points": 2550,
-    "dbscan_points": 2550,
-    "kept_points": 2495
+    "samples": 50,
+    "raw_boxes": 311,
+    "kept_boxes": 119,
+    "raw_points": 11837,
+    "dbscan_points": 8504,
+    "kept_points": 8035
   }
 }

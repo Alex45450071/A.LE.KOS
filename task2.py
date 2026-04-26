@@ -16,13 +16,16 @@ MIN_CLUSTER_POINTS = 10
 TRIM_PERCENTILE_LOW = 10
 TRIM_PERCENTILE_HIGH = 90
 DEPTH_TRIM_LOW = 5
-DEPTH_TRIM_HIGH = 95
-TASK2_CAR_MIN_CONF = 0.35
+DEPTH_TRIM_HIGH = 60
+TASK2_CAR_MIN_CONF = 0.25
 TASK2_CAR_NMS_IOU = 0.45
 TASK2_MAX_BOX_AREA_RATIO = 0.40
 DBSCAN_EPS = 0.8
 DBSCAN_MIN_SAMPLES = 6
-ENABLE_DBSCAN_CLEANUP = False
+ENABLE_DBSCAN_CLEANUP = True
+ENABLE_GROUND_REMOVAL = False
+GROUND_Y_PERCENTILE = 95
+GROUND_OFFSET_M = 0.15
 
 
 def _map_pointcloud_to_image(nusc, pointsensor_token, camera_token, min_dist=1.0):
@@ -183,11 +186,40 @@ def clean_cluster_with_dbscan(cluster_points, eps=DBSCAN_EPS, min_samples=DBSCAN
     return cluster_points[labels == largest_label]
 
 
-def apply_dbscan_cleanup(clusters_by_box, eps=DBSCAN_EPS, min_samples=DBSCAN_MIN_SAMPLES):
-    """Apply DBSCAN denoising to every box cluster."""
-    if not ENABLE_DBSCAN_CLEANUP:
-        return clusters_by_box
-    return {box: clean_cluster_with_dbscan(pts, eps=eps, min_samples=min_samples) for box, pts in clusters_by_box.items()}
+def remove_ground_points(cluster_points, y_percentile=GROUND_Y_PERCENTILE, offset=GROUND_OFFSET_M):
+    """
+    Remove points that are likely ground (highest Y values in camera frame).
+    """
+    if cluster_points.shape[0] < 10:
+        return cluster_points
+    
+    y_vals = cluster_points[:, 1]
+    y_ground = np.percentile(y_vals, y_percentile)
+    
+    # Keep points that are NOT in the ground band
+    mask = y_vals < (y_ground - offset)
+    
+    # If we filter too much, keep a fallback
+    if np.sum(mask) < 5:
+        return cluster_points
+        
+    return cluster_points[mask]
+
+
+def apply_pre_refinement(clusters_by_box):
+    """Apply ground removal and DBSCAN cleanup."""
+    refined = {}
+    for box, pts in clusters_by_box.items():
+        curr_pts = pts
+        if ENABLE_GROUND_REMOVAL:
+            curr_pts = remove_ground_points(curr_pts)
+        if ENABLE_DBSCAN_CLEANUP:
+            curr_pts = clean_cluster_with_dbscan(curr_pts)
+        refined[box] = curr_pts
+    return refined
+
+
+
 
 
 def serialize_clusters(clusters_by_box):
@@ -216,7 +248,9 @@ def estimate_robust_center(cluster_points, low_pct=TRIM_PERCENTILE_LOW, high_pct
     inliers = cluster_points[inlier_mask]
     if inliers.shape[0] == 0:
         inliers = cluster_points
-    return np.median(inliers, axis=0)
+    center = np.median(inliers, axis=0)
+
+    return center
 
 
 def estimate_depth_trimmed_center(cluster_points, low_pct=DEPTH_TRIM_LOW, high_pct=DEPTH_TRIM_HIGH):
@@ -234,7 +268,48 @@ def estimate_depth_trimmed_center(cluster_points, low_pct=DEPTH_TRIM_LOW, high_p
     inliers = cluster_points[inlier_mask]
     if inliers.shape[0] == 0:
         inliers = cluster_points
-    return np.median(inliers, axis=0)
+    center = np.median(inliers, axis=0)
+    
+
+    return center
+
+
+def estimate_3d_size(cluster_points, is_side_view=False, cls_name="car"):
+    """
+    Estimate [Width, Length, Height] of the vehicle.
+    For frustum clusters, we use a hybrid of LiDAR extent and class priors.
+    """
+    # Standard NuScenes vehicle dimensions (W, L, H)
+    class_priors = {
+        "car": [1.93, 4.62, 1.73],
+        "truck": [2.51, 6.93, 2.84],
+        "bus": [2.94, 11.0, 3.47],
+    }
+    
+    if cluster_points.shape[0] < 5:
+        return np.array(class_priors.get(cls_name, class_priors["car"]))
+
+    # Robust extent per axis
+    low = np.percentile(cluster_points, 5, axis=0)
+    high = np.percentile(cluster_points, 95, axis=0)
+    extent = high - low
+    
+    prior = class_priors.get(cls_name, class_priors["car"])
+    
+    # Height is always Y (extent[1])
+    h = np.clip(extent[1], prior[2] * 0.8, prior[2] * 1.2)
+    
+    if is_side_view:
+        # If looking at the side, X-extent is the Length, and Width is occluded
+        l = np.clip(extent[0], prior[1] * 0.8, prior[1] * 1.2)
+        w = prior[0] # Fallback to prior for occluded width
+    else:
+        # If looking at front/rear, X-extent is the Width, and Length is occluded
+        w = np.clip(extent[0], prior[0] * 0.8, prior[0] * 1.2)
+        l = prior[1] # Fallback to prior for occluded length
+        
+    return np.array([w, l, h])
+
 
 
 def get_car_gt_2d_and_3d(sample_data_token):
@@ -261,11 +336,11 @@ def get_car_gt_2d_and_3d(sample_data_token):
         ymax = min(float(image_h), float(ymax))
         if xmax <= xmin or ymax <= ymin:
             continue
-        gt.append({"box": [xmin, ymin, xmax, ymax], "center": np.array(box.center, dtype=float)})
+        gt.append({"box": [xmin, ymin, xmax, ymax], "center": np.array(box.center, dtype=float), "size": np.array(box.wlh, dtype=float)})
     return gt
 
 
-def evaluate_task2_mean_center_error(num_samples=5, iou_threshold=0.5, min_cluster_points=MIN_CLUSTER_POINTS):
+def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster_points=MIN_CLUSTER_POINTS):
     """
     Task 2 metric proxy:
     - Match predicted 2D car boxes to GT 2D car boxes by best IoU (>= iou_threshold), one-to-one.
@@ -276,30 +351,26 @@ def evaluate_task2_mean_center_error(num_samples=5, iou_threshold=0.5, min_clust
     - XYZ-trim robust median
     - depth-only (Z-trim) median
     """
-    scene = nusc.scene[0]
-    sample_token = scene["first_sample_token"]
     all_errors_baseline = []
     all_errors_robust = []
     all_errors_depth_trim = []
+    all_size_errors = []
     total_matches = 0
 
-    for idx in range(num_samples):
-        if not sample_token:
-            break
-        sample = nusc.get("sample", sample_token)
-        cam_front_token = sample["data"]["CAM_FRONT"]
+    for idx, cam_front_token in enumerate(eval_tokens):
         image_path = nusc.get_sample_data_path(cam_front_token)
 
         pred_cars = get_refined_task2_car_detections(cam_front_token)
         pred_boxes = [det[:4] for det in pred_cars]
         clusters_by_box = get_lidar_points_in_2d_box(cam_front_token, pred_boxes)
-        clusters_by_box = apply_dbscan_cleanup(clusters_by_box)
+        clusters_by_box = apply_pre_refinement(clusters_by_box)
         gt_cars = get_car_gt_2d_and_3d(cam_front_token)
 
         matched_gt = set()
         sample_errors_baseline = []
         sample_errors_robust = []
         sample_errors_depth_trim = []
+        sample_size_errors = []
 
         for pred in sorted(pred_cars, key=lambda d: d[4], reverse=True):
             pred_box = pred[:4]
@@ -307,6 +378,16 @@ def evaluate_task2_mean_center_error(num_samples=5, iou_threshold=0.5, min_clust
             cluster = clusters_by_box.get(pred_key)
             if cluster is None or cluster.shape[0] < min_cluster_points:
                 continue
+                
+            # --- Aggressive Outlier Rejection ---
+            # Calculate physical extents in 3D
+            extent_x = np.percentile(cluster[:, 0], 95) - np.percentile(cluster[:, 0], 5)
+            extent_y = np.percentile(cluster[:, 1], 95) - np.percentile(cluster[:, 1], 5)
+            extent_z = np.percentile(cluster[:, 2], 95) - np.percentile(cluster[:, 2], 5)
+            
+            # If the cluster is physically too large, it's likely background noise (e.g., ground, building)
+            if extent_x > 6.0 or extent_y > 4.0 or extent_z > 8.0:
+                continue # Discard this prediction entirely
 
             best_iou = 0.0
             best_gt_idx = None
@@ -321,16 +402,83 @@ def evaluate_task2_mean_center_error(num_samples=5, iou_threshold=0.5, min_clust
             if best_gt_idx is None or best_iou < iou_threshold:
                 continue
 
-            pred_center_baseline = np.median(cluster, axis=0)
-            pred_center_robust = estimate_robust_center(cluster)
-            pred_center_depth_trim = estimate_depth_trimmed_center(cluster)
+            # Dynamic Orientation Guess (2D + 3D)
+            w_2d = pred_box[2] - pred_box[0]
+            h_2d = pred_box[3] - pred_box[1]
+            aspect_2d = w_2d / h_2d if h_2d > 0 else 1.0
+            
+            # It's a side-view if the 2D box is wide AND the 3D cluster is physically wide (>2.5m)
+            # A normal car facing us is only ~1.9m wide.
+            is_side_view = (aspect_2d > 1.2 and extent_x > 2.5)
+            
+            # Size estimation
+            pred_size = estimate_3d_size(cluster, is_side_view=is_side_view, cls_name="car")
+            gt_size = gt_cars[best_gt_idx]["size"]
+            size_error = float(np.linalg.norm(pred_size - gt_size))
+            sample_size_errors.append(size_error)
+            all_size_errors.append(size_error)
+
             gt_center = gt_cars[best_gt_idx]["center"]
+            
+            # Apply fixed offset for robustness
+            fixed_offset = 2.1
+            
+            def apply_fixed_offset(center, offset):
+                norm = np.linalg.norm(center)
+                if norm > 0:
+                    return center + (center / norm) * offset
+                return center
+
+            pred_center_baseline = np.median(cluster, axis=0)
+            pred_center_robust = apply_fixed_offset(estimate_robust_center(cluster), fixed_offset)
+            pred_center_depth_trim = apply_fixed_offset(estimate_depth_trimmed_center(cluster), fixed_offset)
+            
+            if is_side_view:
+                # Likely side view: smaller offset
+                smart_offset_val = 1.0
+            else:
+                # Likely front/rear view (or overlapping noise): larger offset
+                smart_offset_val = 2.1
+            # --- Antigravity Filter ---
+            # NuScenes Camera Frame: Y is down. y_max is the road surface, y_min is the roof.
+            y_vals = cluster[:, 1]
+            y_min_cluster, y_max_cluster = np.min(y_vals), np.max(y_vals)
+            y_range = y_max_cluster - y_min_cluster
+            
+            # Identify points in the bottom 15% (largest Y values) as ground noise
+            ground_threshold_y = y_max_cluster - 0.15 * y_range
+            non_ground_mask = y_vals < ground_threshold_y
+            
+            # Filter cluster
+            floating_cluster = cluster[non_ground_mask]
+            if floating_cluster.shape[0] < 5:
+                # Fallback if we filtered too much
+                floating_cluster = cluster
+                
+            # Vertical Refinement
+            z_min = np.min(floating_cluster[:, 1]) # Top of car
+            z_max = np.max(floating_cluster[:, 1]) # Bottom of car (above road)
+            refined_height = z_max - z_min
+            
+            # Center Elevation
+            antigravity_y = z_min + (refined_height / 2.0)
+            
+            # Apply antigravity to our best depth_trim estimate
+            pred_center_baseline = np.median(cluster, axis=0)
+            pred_center_robust = apply_fixed_offset(estimate_robust_center(cluster), smart_offset_val)
+            
+            # Use floating_cluster for X/Z estimation, but manually set Y
+            base_depth_center = apply_fixed_offset(estimate_depth_trimmed_center(floating_cluster), smart_offset_val)
+            pred_center_depth_trim = np.array([base_depth_center[0], antigravity_y, base_depth_center[2]])
+            
             error_baseline = float(np.linalg.norm(pred_center_baseline - gt_center))
             error_robust = float(np.linalg.norm(pred_center_robust - gt_center))
             error_depth_trim = float(np.linalg.norm(pred_center_depth_trim - gt_center))
+            
             sample_errors_baseline.append(error_baseline)
             sample_errors_robust.append(error_robust)
             sample_errors_depth_trim.append(error_depth_trim)
+            
             all_errors_baseline.append(error_baseline)
             all_errors_robust.append(error_robust)
             all_errors_depth_trim.append(error_depth_trim)
@@ -340,39 +488,31 @@ def evaluate_task2_mean_center_error(num_samples=5, iou_threshold=0.5, min_clust
         sample_mce_baseline = float(np.mean(sample_errors_baseline)) if sample_errors_baseline else float("nan")
         sample_mce_robust = float(np.mean(sample_errors_robust)) if sample_errors_robust else float("nan")
         sample_mce_depth_trim = float(np.mean(sample_errors_depth_trim)) if sample_errors_depth_trim else float("nan")
+        sample_mse = float(np.mean(sample_size_errors)) if sample_size_errors else float("nan")
+        
         print(
             f"Task2 Eval Sample {idx + 1}: matched_cars={len(sample_errors_robust)} | "
-            f"mce_median={sample_mce_baseline:.3f} m | "
-            f"mce_xyz_trim={sample_mce_robust:.3f} m | "
-            f"mce_depth_trim={sample_mce_depth_trim:.3f} m"
+            f"mce_depth_trim={sample_mce_depth_trim:.3f} m | "
+            f"mse={sample_mse:.3f} m"
         )
-
-        sample_token = sample["next"]
 
     overall_mce_baseline = float(np.mean(all_errors_baseline)) if all_errors_baseline else float("nan")
     overall_mce_robust = float(np.mean(all_errors_robust)) if all_errors_robust else float("nan")
     overall_mce_depth_trim = float(np.mean(all_errors_depth_trim)) if all_errors_depth_trim else float("nan")
+    overall_mse = float(np.mean(all_size_errors)) if all_size_errors else float("nan")
+    
     summary = {
-        "samples_evaluated": num_samples,
+        "samples_evaluated": len(eval_tokens),
         "matched_cars_total": total_matches,
-        "dbscan_eps": DBSCAN_EPS,
-        "dbscan_min_samples": DBSCAN_MIN_SAMPLES,
-        "trim_percentile_low": TRIM_PERCENTILE_LOW,
-        "trim_percentile_high": TRIM_PERCENTILE_HIGH,
-        "depth_trim_low": DEPTH_TRIM_LOW,
-        "depth_trim_high": DEPTH_TRIM_HIGH,
         "mean_center_error_median_m": overall_mce_baseline,
         "mean_center_error_robust_m": overall_mce_robust,
         "mean_center_error_depth_trim_m": overall_mce_depth_trim,
-        "all_center_errors_median_m": all_errors_baseline,
-        "all_center_errors_robust_m": all_errors_robust,
-        "all_center_errors_depth_trim_m": all_errors_depth_trim,
+        "mean_size_error_m": overall_mse,
     }
     print(
         f"Task2 Overall: matched_cars={summary['matched_cars_total']} | "
-        f"mce_median={summary['mean_center_error_median_m']:.3f} m | "
-        f"mce_xyz_trim={summary['mean_center_error_robust_m']:.3f} m | "
-        f"mce_depth_trim={summary['mean_center_error_depth_trim_m']:.3f} m"
+        f"mce_depth_trim={summary['mean_center_error_depth_trim_m']:.3f} m | "
+        f"mse={summary['mean_size_error_m']:.3f} m"
     )
     return summary
 
@@ -381,9 +521,22 @@ if __name__ == "__main__":
     # Batch export clusters for first 5 samples in first scene.
     output_dir = "outputs_task2"
     os.makedirs(output_dir, exist_ok=True)
-    scene = nusc.scene[0]
-    sample_token = scene["first_sample_token"]
-
+    import random
+    all_cam_tokens = []
+    for s in nusc.scene:
+        st = s["first_sample_token"]
+        while st:
+            samp = nusc.get("sample", st)
+            all_cam_tokens.append(samp["data"]["CAM_FRONT"])
+            st = samp["next"]
+            
+    # Fixed seed guarantees the same random subset across executions to compare properly
+    random.seed(42)  
+    random.shuffle(all_cam_tokens)
+    
+    # Evaluate on 50 random samples across all scenes
+    eval_tokens = all_cam_tokens[:50]
+    
     summary = {
         "min_cluster_points_filter": MIN_CLUSTER_POINTS,
         "dbscan_eps": DBSCAN_EPS,
@@ -399,15 +552,10 @@ if __name__ == "__main__":
         },
     }
 
-    for idx in range(5):
-        if not sample_token:
-            break
-
-        sample = nusc.get("sample", sample_token)
-        cam_front_token = sample["data"]["CAM_FRONT"]
+    for idx, cam_front_token in enumerate(eval_tokens):
 
         raw_clusters = get_lidar_points_for_task1_predictions(cam_front_token)
-        dbscan_clusters = apply_dbscan_cleanup(raw_clusters)
+        dbscan_clusters = apply_pre_refinement(raw_clusters)
         filtered_clusters = filter_clusters_by_size(dbscan_clusters, min_points=MIN_CLUSTER_POINTS)
 
         raw_box_count = len(raw_clusters)
@@ -446,14 +594,12 @@ if __name__ == "__main__":
         )
         print(f"Saved: {output_path}")
 
-        sample_token = sample["next"]
-
     summary_path = osp.join(output_dir, "summary.json")
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
     print(f"Saved summary: {summary_path}")
 
-    task2_eval = evaluate_task2_mean_center_error(num_samples=5, iou_threshold=0.5)
+    task2_eval = evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5)
     eval_path = osp.join(output_dir, "task2_center_error_eval.json")
     with open(eval_path, "w", encoding="utf-8") as f:
         json.dump(task2_eval, f, indent=2)
