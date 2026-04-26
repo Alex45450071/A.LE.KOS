@@ -1,21 +1,30 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 from matplotlib.patches import Patch
+from sahi.models.ultralytics import UltralyticsDetectionModel
+from sahi.predict import get_sliced_prediction
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.geometry_utils import view_points
-from ultralytics import YOLO
 
 # 1. Initialize NuScenes (point this to your extracted folder)
 DATAROOT = r"C:\Users\alex_\Desktop\ALEKOS\student_dataset"
 nusc = NuScenes(version='v1.0-eval', dataroot=DATAROOT, verbose=False)
 
-# 2. Load YOLOv8 model
-yolo_model = YOLO("yolov8m.pt")
+# 2. Load YOLOv8 model through SAHI wrapper
+sahi_detection_model = UltralyticsDetectionModel(
+    model_path="yolov8m.pt",
+    confidence_threshold=0.45,
+)
 
-# Allowed YOLO classes for this challenge:
-# car=2, motorcycle=3, bus=5, truck=7
-ALLOWED_YOLO_CLASS_IDS = {2, 3, 5, 7}
+# COCO IDs for strict vehicle class handling.
+YOLO_ID_TO_CLASS = {
+    2: "car",
+    5: "bus",
+    7: "truck",
+}
+ALLOWED_VEHICLE_CLASSES = {"car", "truck", "bus", "motorcycle", "trailer"}
 
 
 def get_2d_ground_truth(nusc, sample_data_token):
@@ -68,34 +77,58 @@ def get_2d_ground_truth(nusc, sample_data_token):
 
 def get_yolo_predictions(image_path):
     """
-    Run YOLOv8 inference and return filtered detections:
-        [{'box': [xmin, ymin, xmax, ymax], 'class': <class_id>, 'confidence': <float>}, ...]
+    Hybrid SAHI + standard YOLOv8 inference.
+    Returns detections in format:
+        [xmin, ymin, xmax, ymax, confidence, class_name]
     """
-    results = yolo_model.predict(
-        image_path,
-        imgsz=1280,
-        conf=0.15,
-        iou=0.5,
-        verbose=False,
+    result = get_sliced_prediction(
+        image=image_path,
+        detection_model=sahi_detection_model,
+        slice_height=640,
+        slice_width=640,
+        overlap_height_ratio=0.25,
+        overlap_width_ratio=0.25,
+        perform_standard_pred=True,
+        postprocess_type="NMS",
+        postprocess_match_threshold=0.5,
+        verbose=0,
     )
+
     detections = []
+    for pred in result.object_prediction_list:
+        class_id = int(pred.category.id)
+        class_name = pred.category.name.lower()
 
-    for result in results:
-        boxes = result.boxes
-        for det in boxes:
-            class_id = int(det.cls.item())
-            if class_id not in ALLOWED_YOLO_CLASS_IDS:
-                continue
+        # Enforce strict YOLO class mapping for car/bus/truck IDs.
+        if class_id in YOLO_ID_TO_CLASS:
+            class_name = YOLO_ID_TO_CLASS[class_id]
+        elif class_name == "van":
+            class_name = "car"
 
-            xyxy = det.xyxy[0].tolist()
-            confidence = float(det.conf.item())
-            detections.append(
-                {
-                    "box": [float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3])],
-                    "class": class_id,
-                    "confidence": confidence,
-                }
-            )
+        if class_name not in ALLOWED_VEHICLE_CLASSES:
+            continue
+
+        bbox = pred.bbox
+        xmin, ymin, xmax, ymax = float(bbox.minx), float(bbox.miny), float(bbox.maxx), float(bbox.maxy)
+        box_h = ymax - ymin
+
+        # Distance proxy: drop tiny detections.
+        if box_h <= 30.0:
+            continue
+        # Horizon filter: avoid sky/top-building false positives.
+        if ymin < 400.0:
+            continue
+
+        detections.append(
+            [
+                xmin,
+                ymin,
+                xmax,
+                ymax,
+                float(pred.score.value),
+                class_name,
+            ]
+        )
 
     return detections
 
@@ -127,35 +160,41 @@ def score_frame(gt_boxes, pred_boxes, match_threshold=0.4):
     """
     For each GT box, find the prediction with the highest IoU.
     A GT box is a missed detection if best IoU <= match_threshold.
-    Returns mean IoU over GT boxes and missed detection count.
+    Returns mean IoU, missed detection count, and near-miss count
+    where best IoU is in [0.3, 0.5).
     """
     if not gt_boxes:
-        return 0.0, 0
+        return 0.0, 0, 0
 
     best_ious = []
     missed_detections = 0
+    near_misses = 0
 
     for gt in gt_boxes:
         gt_box = gt["box"]
         best_iou = 0.0
 
         for pred in pred_boxes:
-            iou = calculate_iou(gt_box, pred["box"])
+            iou = calculate_iou(gt_box, pred[:4])
             if iou > best_iou:
                 best_iou = iou
 
         best_ious.append(best_iou)
         if best_iou <= match_threshold:
             missed_detections += 1
+        if 0.3 <= best_iou < 0.5:
+            near_misses += 1
 
     mean_iou = float(np.mean(best_ious))
-    return mean_iou, missed_detections
+    return mean_iou, missed_detections, near_misses
 
 
 if __name__ == "__main__":
     # 3. Loop through first 5 samples of the first scene
     scene = nusc.scene[0]
     sample_token = scene["first_sample_token"]
+    output_dir = "outputs"
+    os.makedirs(output_dir, exist_ok=True)
 
     for idx in range(5):
         if not sample_token:
@@ -168,12 +207,13 @@ if __name__ == "__main__":
 
         gt_boxes = get_2d_ground_truth(nusc, cam_front_token)
         yolo_boxes = get_yolo_predictions(image_path)
-        mean_iou, missed = score_frame(gt_boxes, yolo_boxes, match_threshold=0.4)
+        mean_iou, missed, near_misses = score_frame(gt_boxes, yolo_boxes, match_threshold=0.4)
 
         print(
             f"Sample {idx + 1} ({cam_front_data['filename']}): "
             f"GT boxes = {len(gt_boxes)} | YOLO detections = {len(yolo_boxes)} | "
-            f"Mean IoU = {mean_iou:.3f} | Missed Detections = {missed}"
+            f"Mean IoU = {mean_iou:.3f} | Missed Detections = {missed} | "
+            f"Near Misses (0.3-0.5 IoU) = {near_misses}"
         )
 
         # 4. Visualization: GT in green, YOLO predictions in red
@@ -202,8 +242,7 @@ if __name__ == "__main__":
             )
 
         for pred in yolo_boxes:
-            xmin, ymin, xmax, ymax = pred["box"]
-            conf = pred.get("confidence", 0.0)
+            xmin, ymin, xmax, ymax, conf, cls_name = pred
             rect = plt.Rectangle(
                 (xmin, ymin),
                 xmax - xmin,
@@ -216,7 +255,7 @@ if __name__ == "__main__":
             ax.text(
                 xmin,
                 max(0.0, ymin - 5),
-                f"Pred {conf:.2f}",
+                f"Pred {cls_name} {conf:.2f}",
                 color="red",
                 fontsize=9,
                 bbox={"facecolor": "black", "alpha": 0.5, "pad": 1},
@@ -230,7 +269,7 @@ if __name__ == "__main__":
         ax.set_title(f"Sample {idx + 1}: CAM_FRONT")
         ax.axis("off")
 
-        output_path = f"output_sample_{idx + 1}.png"
+        output_path = os.path.join(output_dir, f"output_sample_{idx + 1}.png")
         fig.savefig(output_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
 
