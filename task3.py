@@ -29,7 +29,10 @@ def _fit_cv_from_history(history_xy):
     if len(history_xy) < 2:
         return history_xy[-1], np.zeros(2)
     deltas = np.diff(history_xy, axis=0) / DT
-    v = np.mean(deltas, axis=0)
+    # Prefer recent motion while still smoothing noisy short tracks.
+    w = np.linspace(1.0, 2.0, len(deltas), dtype=float)
+    w = w / np.sum(w)
+    v = np.sum(deltas * w[:, None], axis=0)
     return history_xy[-1], v
 
 
@@ -87,8 +90,13 @@ def _fit_ctrv_from_history(history_xy):
         v = float(np.median(step_speeds[valid]))
         yaw = float(headings[-1])
         if len(headings) >= 2:
-            yaw_diffs = np.array([_wrap_angle(headings[i] - headings[i - 1]) for i in range(1, len(headings))])
-            yaw_rate = float(np.median(yaw_diffs) / DT) if len(yaw_diffs) else 0.0
+            # Stabilize turn-rate estimate with a line fit on unwrapped headings.
+            hu = np.unwrap(headings)
+            t = np.arange(len(hu), dtype=float) * DT
+            if len(hu) >= 3:
+                yaw_rate = float(np.polyfit(t, hu, 1)[0])
+            else:
+                yaw_rate = float((hu[-1] - hu[0]) / max(DT, 1e-6))
         else:
             yaw_rate = 0.0
     else:
@@ -104,7 +112,7 @@ def _predict_ctrv(start_xy, v, yaw, yaw_rate, steps=HORIZON_STEPS):
     x = float(start_xy[0])
     y = float(start_xy[1])
     v = float(np.clip(v, 0.0, 35.0))
-    yaw_rate = float(np.clip(yaw_rate, -0.8, 0.8))
+    yaw_rate = float(np.clip(yaw_rate, -0.6, 0.6))
 
     for _ in range(steps):
         if abs(yaw_rate) > 1e-4:

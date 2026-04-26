@@ -114,6 +114,29 @@ def _classify_motion_mode(history_xy):
     return "uncertain"
 
 
+def _estimate_uncertainty_scale(history_xy):
+    """
+    Returns uncertainty in [0, 1] from heading jitter + speed volatility.
+    Higher means less reliable motion signal.
+    """
+    if len(history_xy) < 3:
+        return 1.0
+    deltas = np.diff(history_xy[:, :2], axis=0)
+    step_dist = np.linalg.norm(deltas, axis=1)
+    speeds = step_dist / DT
+    headings = np.arctan2(deltas[:, 1], deltas[:, 0])
+    if len(headings) >= 2:
+        yaw_diffs = np.array([_wrap_angle(headings[i] - headings[i - 1]) for i in range(1, len(headings))], dtype=float)
+        yaw_jitter = float(np.std(yaw_diffs))
+    else:
+        yaw_jitter = 0.0
+    speed_vol = float(np.std(speeds))
+    # Normalize to practical ranges then blend.
+    yaw_score = np.clip(yaw_jitter / 0.40, 0.0, 1.0)
+    speed_score = np.clip(speed_vol / 3.0, 0.0, 1.0)
+    return float(0.6 * yaw_score + 0.4 * speed_score)
+
+
 def _predict_hybrid(history_xy, start_xy):
     """
     Hybrid predictor:
@@ -133,7 +156,10 @@ def _predict_hybrid(history_xy, start_xy):
         raw = _predict_cv(start_xy, v_xy, HORIZON_STEPS)
     else:
         # Conservative fallback for uncertain/noisy tracks.
-        raw = _predict_cv(start_xy, 0.7 * v_xy, HORIZON_STEPS)
+        uncertainty = _estimate_uncertainty_scale(history_xy)
+        conservative_scale = 0.75 - 0.45 * uncertainty
+        conservative_scale = float(np.clip(conservative_scale, 0.30, 0.75))
+        raw = _predict_cv(start_xy, conservative_scale * v_xy, HORIZON_STEPS)
 
     # Damping: blend toward constant-velocity displacement after each step.
     # This reduces exploding curvature on noisy short tracks.
