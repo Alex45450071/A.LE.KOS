@@ -31,6 +31,8 @@ FAR_OBJECT_MIN_CONFIDENCE = 0.45
 ROAD_ROI_START_RATIO = 0.45
 MERGE_IOU_THRESHOLD = 0.45
 MERGE_CONTAINMENT_THRESHOLD = 0.75
+MERGE_CROSS_CLASS_CONTAINMENT_THRESHOLD = 0.85
+MERGE_AREA_RATIO_THRESHOLD = 2.0
 
 
 def get_2d_ground_truth(nusc, sample_data_token):
@@ -170,6 +172,29 @@ def get_yolo_predictions(image_path):
                 kept.append(det)
         detections.extend(kept)
 
+    # Cross-class dedup for nested boxes on the same object (e.g., truck+bus overlap).
+    detections.sort(key=lambda d: d[4], reverse=True)
+    filtered = []
+    for det in detections:
+        det_box = det[:4]
+        det_area = calculate_area(det_box)
+        suppress = False
+        for kept in filtered:
+            kept_box = kept[:4]
+            kept_area = calculate_area(kept_box)
+            containment = calculate_containment(det_box, kept_box)
+            area_ratio = max(det_area, kept_area) / max(1e-6, min(det_area, kept_area))
+            if (
+                containment >= MERGE_CROSS_CLASS_CONTAINMENT_THRESHOLD
+                and area_ratio >= MERGE_AREA_RATIO_THRESHOLD
+            ):
+                suppress = True
+                break
+        if not suppress:
+            filtered.append(det)
+
+    detections = filtered
+
     return detections
 
 
@@ -217,6 +242,11 @@ def calculate_containment(boxA, boxB):
     area_b = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
     min_area = max(1e-6, min(area_a, area_b))
     return inter_area / min_area
+
+
+def calculate_area(box):
+    x1, y1, x2, y2 = box
+    return max(0.0, x2 - x1) * max(0.0, y2 - y1)
 
 
 def score_frame(gt_boxes, pred_boxes, match_threshold=0.4):
