@@ -28,6 +28,9 @@ ALLOWED_VEHICLE_CLASSES = {"car", "truck", "bus"}
 # Extra precision gate for distant/small detections.
 FAR_OBJECT_MAX_HEIGHT_PX = 55.0
 FAR_OBJECT_MIN_CONFIDENCE = 0.45
+ROAD_ROI_START_RATIO = 0.45
+MERGE_IOU_THRESHOLD = 0.45
+MERGE_CONTAINMENT_THRESHOLD = 0.75
 
 
 def get_2d_ground_truth(nusc, sample_data_token):
@@ -84,8 +87,12 @@ def get_yolo_predictions(image_path):
     Returns detections in format:
         [xmin, ymin, xmax, ymax, confidence, class_name]
     """
-    image_w, image_h = Image.open(image_path).size
-    result = get_sliced_prediction(
+    image = Image.open(image_path)
+    image_w, image_h = image.size
+    road_ymin = int(image_h * ROAD_ROI_START_RATIO)
+
+    # Pass 1: strict global hybrid prediction for stable near-object detections.
+    global_result = get_sliced_prediction(
         image=image_path,
         detection_model=sahi_detection_model,
         slice_height=640,
@@ -98,29 +105,70 @@ def get_yolo_predictions(image_path):
         verbose=0,
     )
 
+    # Pass 2: dynamic road-ROI pass with finer slicing to recover far objects.
+    roi_array = np.array(image)[road_ymin:, :, :]
+    roi_result = get_sliced_prediction(
+        image=roi_array,
+        detection_model=sahi_detection_model,
+        slice_height=512,
+        slice_width=512,
+        overlap_height_ratio=0.25,
+        overlap_width_ratio=0.25,
+        perform_standard_pred=False,
+        postprocess_type="GREEDYNMM",
+        postprocess_match_threshold=0.45,
+        verbose=0,
+    )
+
+    raw_detections = []
+
+    def collect_predictions(predictions, y_offset=0.0):
+        for pred in predictions:
+            class_id = int(pred.category.id)
+            class_name = pred.category.name.lower()
+
+            if class_id in YOLO_ID_TO_CLASS:
+                class_name = YOLO_ID_TO_CLASS[class_id]
+            elif class_name == "van":
+                class_name = "car"
+
+            if class_name not in ALLOWED_VEHICLE_CLASSES:
+                continue
+
+            bbox = pred.bbox
+            xmin = float(bbox.minx)
+            ymin = float(bbox.miny) + y_offset
+            xmax = float(bbox.maxx)
+            ymax = float(bbox.maxy) + y_offset
+            confidence = float(pred.score.value)
+            box_height = ymax - ymin
+
+            # Far-away objects are usually tiny and noisier; require higher confidence.
+            if box_height <= FAR_OBJECT_MAX_HEIGHT_PX and confidence < FAR_OBJECT_MIN_CONFIDENCE:
+                continue
+
+            raw_detections.append([xmin, ymin, xmax, ymax, confidence, class_name])
+
+    collect_predictions(global_result.object_prediction_list, y_offset=0.0)
+    collect_predictions(roi_result.object_prediction_list, y_offset=float(road_ymin))
+
+    # Class-wise dedup to suppress global+ROI double detections.
     detections = []
-    for pred in result.object_prediction_list:
-        class_id = int(pred.category.id)
-        class_name = pred.category.name.lower()
-
-        if class_id in YOLO_ID_TO_CLASS:
-            class_name = YOLO_ID_TO_CLASS[class_id]
-        elif class_name == "van":
-            class_name = "car"
-
-        if class_name not in ALLOWED_VEHICLE_CLASSES:
-            continue
-
-        bbox = pred.bbox
-        xmin, ymin, xmax, ymax = float(bbox.minx), float(bbox.miny), float(bbox.maxx), float(bbox.maxy)
-        confidence = float(pred.score.value)
-        box_height = ymax - ymin
-
-        # Far-away objects are usually tiny and noisier; require higher confidence.
-        if box_height <= FAR_OBJECT_MAX_HEIGHT_PX and confidence < FAR_OBJECT_MIN_CONFIDENCE:
-            continue
-
-        detections.append([xmin, ymin, xmax, ymax, confidence, class_name])
+    for cls_name in ALLOWED_VEHICLE_CLASSES:
+        cls_dets = [d for d in raw_detections if d[5] == cls_name]
+        cls_dets.sort(key=lambda d: d[4], reverse=True)
+        kept = []
+        for det in cls_dets:
+            is_duplicate = False
+            for k in kept:
+                iou = calculate_iou(det[:4], k[:4])
+                containment = calculate_containment(det[:4], k[:4])
+                if iou >= MERGE_IOU_THRESHOLD or containment >= MERGE_CONTAINMENT_THRESHOLD:
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                kept.append(det)
+        detections.extend(kept)
 
     return detections
 
@@ -146,6 +194,29 @@ def calculate_iou(boxA, boxB):
     if union_area <= 0.0:
         return 0.0
     return inter_area / union_area
+
+
+def calculate_containment(boxA, boxB):
+    """
+    Intersection over smaller-box area.
+    Helps remove nested duplicates where IoU alone is too low.
+    """
+    ax1, ay1, ax2, ay2 = boxA
+    bx1, by1, bx2, by2 = boxB
+
+    inter_x1 = max(ax1, bx1)
+    inter_y1 = max(ay1, by1)
+    inter_x2 = min(ax2, bx2)
+    inter_y2 = min(ay2, by2)
+
+    inter_w = max(0.0, inter_x2 - inter_x1)
+    inter_h = max(0.0, inter_y2 - inter_y1)
+    inter_area = inter_w * inter_h
+
+    area_a = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+    area_b = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
+    min_area = max(1e-6, min(area_a, area_b))
+    return inter_area / min_area
 
 
 def score_frame(gt_boxes, pred_boxes, match_threshold=0.4):
