@@ -1,0 +1,5 @@
+student_dataset/
+__pycache__/
+*.pyc
+output_sample_*.png
+yolov8*.pt

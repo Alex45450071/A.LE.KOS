@@ -6,6 +6,16 @@ Before you spend hours debugging, read through this guide. It covers the exact c
 
 ---
 
+## 📋 Hackathon Rules & Constraints
+
+1. **Compute Limit:** Your entire pipeline must run on a standard Kaggle or Google Colab free-tier GPU.
+2. **No Deep Learning Training:** Avoid training from scratch to save time and reduce failure risk.
+3. **Pre-trained Models Allowed:** Small off-the-shelf pre-trained models (for example YOLO) are allowed strictly for 2D inference. Minor fine-tuning is allowed but discouraged.
+4. **Dataset Scope:** Use the provided subset of NuScenes v1.0-mini with 6 scenes containing full ground-truth annotations for development.
+5. **Evaluation Setup:** Final scoring is run on a blind test set of 4 scenes.
+
+---
+
 ## 📸 Task 1: 2D Object Detection
 
 **Q: My model is finding cars perfectly, but the evaluation script is giving me a 0.0 IoU or a massive False Positive penalty. Why?**
