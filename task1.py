@@ -12,10 +12,10 @@ from nuscenes.utils.geometry_utils import view_points
 DATAROOT = r"C:\Users\alex_\Desktop\ALEKOS\student_dataset"
 nusc = NuScenes(version='v1.0-eval', dataroot=DATAROOT, verbose=False)
 
-# 2. Load YOLOv8 model through SAHI wrapper
+# 2. Load YOLOv8m model through SAHI wrapper
 sahi_detection_model = UltralyticsDetectionModel(
     model_path="yolov8m.pt",
-    confidence_threshold=0.45,
+    confidence_threshold=0.2,
 )
 
 # COCO IDs for strict vehicle class handling.
@@ -24,7 +24,10 @@ YOLO_ID_TO_CLASS = {
     5: "bus",
     7: "truck",
 }
-ALLOWED_VEHICLE_CLASSES = {"car", "truck", "bus", "motorcycle", "trailer"}
+ALLOWED_VEHICLE_CLASSES = {"car", "truck", "bus"}
+# Extra precision gate for distant/small detections.
+FAR_OBJECT_MAX_HEIGHT_PX = 55.0
+FAR_OBJECT_MIN_CONFIDENCE = 0.45
 
 
 def get_2d_ground_truth(nusc, sample_data_token):
@@ -81,16 +84,17 @@ def get_yolo_predictions(image_path):
     Returns detections in format:
         [xmin, ymin, xmax, ymax, confidence, class_name]
     """
+    image_w, image_h = Image.open(image_path).size
     result = get_sliced_prediction(
         image=image_path,
         detection_model=sahi_detection_model,
         slice_height=640,
         slice_width=640,
-        overlap_height_ratio=0.25,
-        overlap_width_ratio=0.25,
+        overlap_height_ratio=0.2,
+        overlap_width_ratio=0.2,
         perform_standard_pred=True,
-        postprocess_type="NMS",
-        postprocess_match_threshold=0.5,
+        postprocess_type="GREEDYNMM",
+        postprocess_match_threshold=0.45,
         verbose=0,
     )
 
@@ -99,7 +103,6 @@ def get_yolo_predictions(image_path):
         class_id = int(pred.category.id)
         class_name = pred.category.name.lower()
 
-        # Enforce strict YOLO class mapping for car/bus/truck IDs.
         if class_id in YOLO_ID_TO_CLASS:
             class_name = YOLO_ID_TO_CLASS[class_id]
         elif class_name == "van":
@@ -110,25 +113,14 @@ def get_yolo_predictions(image_path):
 
         bbox = pred.bbox
         xmin, ymin, xmax, ymax = float(bbox.minx), float(bbox.miny), float(bbox.maxx), float(bbox.maxy)
-        box_h = ymax - ymin
+        confidence = float(pred.score.value)
+        box_height = ymax - ymin
 
-        # Distance proxy: drop tiny detections.
-        if box_h <= 30.0:
-            continue
-        # Horizon filter: avoid sky/top-building false positives.
-        if ymin < 400.0:
+        # Far-away objects are usually tiny and noisier; require higher confidence.
+        if box_height <= FAR_OBJECT_MAX_HEIGHT_PX and confidence < FAR_OBJECT_MIN_CONFIDENCE:
             continue
 
-        detections.append(
-            [
-                xmin,
-                ymin,
-                xmax,
-                ymax,
-                float(pred.score.value),
-                class_name,
-            ]
-        )
+        detections.append([xmin, ymin, xmax, ymax, confidence, class_name])
 
     return detections
 
