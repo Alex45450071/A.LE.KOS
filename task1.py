@@ -15,7 +15,7 @@ nusc = NuScenes(version='v1.0-eval', dataroot=DATAROOT, verbose=False)
 # 2. Load YOLOv8m model through SAHI wrapper
 sahi_detection_model = UltralyticsDetectionModel(
     model_path="yolov8m.pt",
-    confidence_threshold=0.2,
+    confidence_threshold=0.36,
 )
 
 # COCO IDs for strict vehicle class handling.
@@ -25,12 +25,15 @@ YOLO_ID_TO_CLASS = {
     7: "truck",
 }
 ALLOWED_VEHICLE_CLASSES = {"car", "truck", "bus"}
-# Extra precision gate for distant/small detections.
+# Precision-first configuration (minimize false positives).
+GLOBAL_MIN_CONFIDENCE = 0.42
 FAR_OBJECT_MAX_HEIGHT_PX = 55.0
-FAR_OBJECT_MIN_CONFIDENCE = 0.45
-ROAD_ROI_START_RATIO = 0.45
-MERGE_IOU_THRESHOLD = 0.45
-MERGE_CONTAINMENT_THRESHOLD = 0.75
+FAR_OBJECT_MIN_CONFIDENCE = 0.56
+MIN_BOX_WIDTH_PX = 8.0
+MIN_BOX_HEIGHT_PX = 8.0
+ROAD_ROI_START_RATIO = 0.49
+MERGE_IOU_THRESHOLD = 0.36
+MERGE_CONTAINMENT_THRESHOLD = 0.62
 
 
 def get_2d_ground_truth(nusc, sample_data_token):
@@ -141,7 +144,15 @@ def get_yolo_predictions(image_path):
             xmax = float(bbox.maxx)
             ymax = float(bbox.maxy) + y_offset
             confidence = float(pred.score.value)
+            if confidence < GLOBAL_MIN_CONFIDENCE:
+                continue
+
             box_height = ymax - ymin
+            box_width = xmax - xmin
+
+            # Remove tiny boxes that are usually noisy false positives.
+            if box_width < MIN_BOX_WIDTH_PX or box_height < MIN_BOX_HEIGHT_PX:
+                continue
 
             # Far-away objects are usually tiny and noisier; require higher confidence.
             if box_height <= FAR_OBJECT_MAX_HEIGHT_PX and confidence < FAR_OBJECT_MIN_CONFIDENCE:
@@ -252,12 +263,48 @@ def score_frame(gt_boxes, pred_boxes, match_threshold=0.4):
     return mean_iou, missed_detections, near_misses
 
 
+def detection_metrics(gt_boxes, pred_boxes, match_threshold=0.4):
+    """
+    Greedy one-to-one matching using IoU threshold.
+    Returns (tp, fp, fn, precision, recall, f1).
+    """
+    if not gt_boxes and not pred_boxes:
+        return 0, 0, 0, 0.0, 0.0, 0.0
+
+    matched_pred_indices = set()
+    tp = 0
+
+    for gt in gt_boxes:
+        gt_box = gt["box"]
+        best_iou = 0.0
+        best_pred_idx = -1
+        for pred_idx, pred in enumerate(pred_boxes):
+            if pred_idx in matched_pred_indices:
+                continue
+            iou = calculate_iou(gt_box, pred[:4])
+            if iou > best_iou:
+                best_iou = iou
+                best_pred_idx = pred_idx
+        if best_pred_idx != -1 and best_iou >= match_threshold:
+            matched_pred_indices.add(best_pred_idx)
+            tp += 1
+
+    fp = max(0, len(pred_boxes) - tp)
+    fn = max(0, len(gt_boxes) - tp)
+
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1 = (2.0 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+    return tp, fp, fn, precision, recall, f1
+
+
 if __name__ == "__main__":
     # 3. Loop through first 5 samples of the first scene
     scene = nusc.scene[0]
     sample_token = scene["first_sample_token"]
     output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
+    total_tp, total_fp, total_fn = 0, 0, 0
 
     for idx in range(5):
         if not sample_token:
@@ -271,12 +318,18 @@ if __name__ == "__main__":
         gt_boxes = get_2d_ground_truth(nusc, cam_front_token)
         yolo_boxes = get_yolo_predictions(image_path)
         mean_iou, missed, near_misses = score_frame(gt_boxes, yolo_boxes, match_threshold=0.4)
+        tp, fp, fn, precision, recall, f1 = detection_metrics(gt_boxes, yolo_boxes, match_threshold=0.4)
+        total_tp += tp
+        total_fp += fp
+        total_fn += fn
 
         print(
             f"Sample {idx + 1} ({cam_front_data['filename']}): "
             f"GT boxes = {len(gt_boxes)} | YOLO detections = {len(yolo_boxes)} | "
             f"Mean IoU = {mean_iou:.3f} | Missed Detections = {missed} | "
-            f"Near Misses (0.3-0.5 IoU) = {near_misses}"
+            f"Near Misses (0.3-0.5 IoU) = {near_misses} | "
+            f"TP = {tp} | FP = {fp} | FN = {fn} | "
+            f"Precision = {precision:.3f} | Recall = {recall:.3f} | F1 = {f1:.3f}"
         )
 
         # 4. Visualization: GT in green, YOLO predictions in red
@@ -337,3 +390,15 @@ if __name__ == "__main__":
         plt.close(fig)
 
         sample_token = sample["next"]
+
+    overall_precision = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
+    overall_recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
+    overall_f1 = (
+        2.0 * overall_precision * overall_recall / (overall_precision + overall_recall)
+        if (overall_precision + overall_recall) > 0
+        else 0.0
+    )
+    print(
+        f"Overall (5 samples): TP = {total_tp} | FP = {total_fp} | FN = {total_fn} | "
+        f"Precision = {overall_precision:.3f} | Recall = {overall_recall:.3f} | F1 = {overall_f1:.3f}"
+    )

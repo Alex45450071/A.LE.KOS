@@ -1,0 +1,322 @@
+[
+  {
+    "name": "high_conf_low_size",
+    "tp": 26,
+    "fp": 5,
+    "fn": 20,
+    "precision": 0.8387,
+    "recall": 0.5652,
+    "micro_f1": 0.6753,
+    "macro_f1": 0.6784,
+    "config": {
+      "model_conf": 0.36,
+      "global_min": 0.42,
+      "far_conf": 0.6,
+      "min_w": 8.0,
+      "min_h": 8.0,
+      "road_ratio": 0.49,
+      "merge_iou": 0.36,
+      "merge_cont": 0.62
+    }
+  },
+  {
+    "name": "recall_plus",
+    "tp": 30,
+    "fp": 13,
+    "fn": 16,
+    "precision": 0.6977,
+    "recall": 0.6522,
+    "micro_f1": 0.6742,
+    "macro_f1": 0.674,
+    "config": {
+      "model_conf": 0.2,
+      "global_min": 0.1,
+      "far_conf": 0.45,
+      "min_w": 4.0,
+      "min_h": 4.0,
+      "road_ratio": 0.43,
+      "merge_iou": 0.45,
+      "merge_cont": 0.75
+    }
+  },
+  {
+    "name": "balanced_d",
+    "tp": 27,
+    "fp": 8,
+    "fn": 19,
+    "precision": 0.7714,
+    "recall": 0.587,
+    "micro_f1": 0.6667,
+    "macro_f1": 0.6709,
+    "config": {
+      "model_conf": 0.32,
+      "global_min": 0.35,
+      "far_conf": 0.57,
+      "min_w": 14.0,
+      "min_h": 14.0,
+      "road_ratio": 0.48,
+      "merge_iou": 0.37,
+      "merge_cont": 0.64
+    }
+  },
+  {
+    "name": "strict_dedup_b",
+    "tp": 27,
+    "fp": 8,
+    "fn": 19,
+    "precision": 0.7714,
+    "recall": 0.587,
+    "micro_f1": 0.6667,
+    "macro_f1": 0.6678,
+    "config": {
+      "model_conf": 0.27,
+      "global_min": 0.28,
+      "far_conf": 0.52,
+      "min_w": 8.0,
+      "min_h": 8.0,
+      "road_ratio": 0.46,
+      "merge_iou": 0.33,
+      "merge_cont": 0.55
+    }
+  },
+  {
+    "name": "recall_max",
+    "tp": 30,
+    "fp": 15,
+    "fn": 16,
+    "precision": 0.6667,
+    "recall": 0.6522,
+    "micro_f1": 0.6593,
+    "macro_f1": 0.6593,
+    "config": {
+      "model_conf": 0.18,
+      "global_min": 0.0,
+      "far_conf": 0.42,
+      "min_w": 0.0,
+      "min_h": 0.0,
+      "road_ratio": 0.4,
+      "merge_iou": 0.48,
+      "merge_cont": 0.8
+    }
+  },
+  {
+    "name": "baseline_v1",
+    "tp": 28,
+    "fp": 11,
+    "fn": 18,
+    "precision": 0.7179,
+    "recall": 0.6087,
+    "micro_f1": 0.6588,
+    "macro_f1": 0.6603,
+    "config": {
+      "model_conf": 0.2,
+      "global_min": 0.0,
+      "far_conf": 0.45,
+      "min_w": 0.0,
+      "min_h": 0.0,
+      "road_ratio": 0.45,
+      "merge_iou": 0.45,
+      "merge_cont": 0.75
+    }
+  },
+  {
+    "name": "balanced_a",
+    "tp": 27,
+    "fp": 9,
+    "fn": 19,
+    "precision": 0.75,
+    "recall": 0.587,
+    "micro_f1": 0.6585,
+    "macro_f1": 0.6595,
+    "config": {
+      "model_conf": 0.25,
+      "global_min": 0.25,
+      "far_conf": 0.5,
+      "min_w": 8.0,
+      "min_h": 8.0,
+      "road_ratio": 0.45,
+      "merge_iou": 0.4,
+      "merge_cont": 0.7
+    }
+  },
+  {
+    "name": "balanced_b",
+    "tp": 27,
+    "fp": 9,
+    "fn": 19,
+    "precision": 0.75,
+    "recall": 0.587,
+    "micro_f1": 0.6585,
+    "macro_f1": 0.6595,
+    "config": {
+      "model_conf": 0.28,
+      "global_min": 0.3,
+      "far_conf": 0.52,
+      "min_w": 10.0,
+      "min_h": 10.0,
+      "road_ratio": 0.45,
+      "merge_iou": 0.4,
+      "merge_cont": 0.68
+    }
+  },
+  {
+    "name": "balanced_c",
+    "tp": 27,
+    "fp": 9,
+    "fn": 19,
+    "precision": 0.75,
+    "recall": 0.587,
+    "micro_f1": 0.6585,
+    "macro_f1": 0.6595,
+    "config": {
+      "model_conf": 0.3,
+      "global_min": 0.32,
+      "far_conf": 0.55,
+      "min_w": 12.0,
+      "min_h": 12.0,
+      "road_ratio": 0.45,
+      "merge_iou": 0.38,
+      "merge_cont": 0.66
+    }
+  },
+  {
+    "name": "mid_precision_b",
+    "tp": 27,
+    "fp": 10,
+    "fn": 19,
+    "precision": 0.7297,
+    "recall": 0.587,
+    "micro_f1": 0.6506,
+    "macro_f1": 0.6495,
+    "config": {
+      "model_conf": 0.31,
+      "global_min": 0.34,
+      "far_conf": 0.56,
+      "min_w": 12.0,
+      "min_h": 12.0,
+      "road_ratio": 0.48,
+      "merge_iou": 0.37,
+      "merge_cont": 0.63
+    }
+  },
+  {
+    "name": "low_conf_high_size",
+    "tp": 27,
+    "fp": 10,
+    "fn": 19,
+    "precision": 0.7297,
+    "recall": 0.587,
+    "micro_f1": 0.6506,
+    "macro_f1": 0.6508,
+    "config": {
+      "model_conf": 0.24,
+      "global_min": 0.18,
+      "far_conf": 0.5,
+      "min_w": 16.0,
+      "min_h": 16.0,
+      "road_ratio": 0.47,
+      "merge_iou": 0.39,
+      "merge_cont": 0.67
+    }
+  },
+  {
+    "name": "mid_precision_a",
+    "tp": 26,
+    "fp": 8,
+    "fn": 20,
+    "precision": 0.7647,
+    "recall": 0.5652,
+    "micro_f1": 0.65,
+    "macro_f1": 0.6507,
+    "config": {
+      "model_conf": 0.33,
+      "global_min": 0.36,
+      "far_conf": 0.58,
+      "min_w": 14.0,
+      "min_h": 14.0,
+      "road_ratio": 0.49,
+      "merge_iou": 0.36,
+      "merge_cont": 0.62
+    }
+  },
+  {
+    "name": "precision_current",
+    "tp": 24,
+    "fp": 5,
+    "fn": 22,
+    "precision": 0.8276,
+    "recall": 0.5217,
+    "micro_f1": 0.64,
+    "macro_f1": 0.6417,
+    "config": {
+      "model_conf": 0.35,
+      "global_min": 0.4,
+      "far_conf": 0.6,
+      "min_w": 18.0,
+      "min_h": 18.0,
+      "road_ratio": 0.5,
+      "merge_iou": 0.35,
+      "merge_cont": 0.6
+    }
+  },
+  {
+    "name": "strict_dedup_a",
+    "tp": 26,
+    "fp": 10,
+    "fn": 20,
+    "precision": 0.7222,
+    "recall": 0.5652,
+    "micro_f1": 0.6341,
+    "macro_f1": 0.6342,
+    "config": {
+      "model_conf": 0.3,
+      "global_min": 0.3,
+      "far_conf": 0.55,
+      "min_w": 10.0,
+      "min_h": 10.0,
+      "road_ratio": 0.47,
+      "merge_iou": 0.34,
+      "merge_cont": 0.58
+    }
+  },
+  {
+    "name": "precision_plus",
+    "tp": 23,
+    "fp": 4,
+    "fn": 23,
+    "precision": 0.8519,
+    "recall": 0.5,
+    "micro_f1": 0.6301,
+    "macro_f1": 0.6333,
+    "config": {
+      "model_conf": 0.38,
+      "global_min": 0.45,
+      "far_conf": 0.62,
+      "min_w": 18.0,
+      "min_h": 18.0,
+      "road_ratio": 0.5,
+      "merge_iou": 0.35,
+      "merge_cont": 0.6
+    }
+  },
+  {
+    "name": "precision_max",
+    "tp": 22,
+    "fp": 2,
+    "fn": 24,
+    "precision": 0.9167,
+    "recall": 0.4783,
+    "micro_f1": 0.6286,
+    "macro_f1": 0.6326,
+    "config": {
+      "model_conf": 0.42,
+      "global_min": 0.5,
+      "far_conf": 0.65,
+      "min_w": 20.0,
+      "min_h": 20.0,
+      "road_ratio": 0.52,
+      "merge_iou": 0.33,
+      "merge_cont": 0.58
+    }
+  }
+]
