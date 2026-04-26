@@ -1,0 +1,58 @@
+{
+  "results": [
+    {
+      "model": "cv",
+      "metrics": {
+        "mean_ade": 1.366,
+        "mean_fde": 2.748,
+        "median_ade": 0.088
+      },
+      "timestamp": "2026-04-26T17:35:13"
+    },
+    {
+      "model": "ca",
+      "metrics": {
+        "mean_ade": 1.377,
+        "mean_fde": 3.02,
+        "median_ade": 0.101
+      },
+      "timestamp": "2026-04-26T17:35:34"
+    },
+    {
+      "model": "kf",
+      "metrics": {
+        "mean_ade": 4.461,
+        "mean_fde": 10.029,
+        "median_ade": 0.126
+      },
+      "timestamp": "2026-04-26T17:35:58"
+    },
+    {
+      "model": "ctrv",
+      "metrics": {
+        "mean_ade": 1.328,
+        "mean_fde": 2.696,
+        "median_ade": 0.105
+      },
+      "timestamp": "2026-04-26T17:36:22"
+    },
+    {
+      "model": "hybrid",
+      "metrics": {
+        "mean_ade": 1.309,
+        "mean_fde": 2.65,
+        "median_ade": 0.088
+      },
+      "timestamp": "2026-04-26T17:36:49"
+    }
+  ],
+  "winner": {
+    "model": "hybrid",
+    "metrics": {
+      "mean_ade": 1.309,
+      "mean_fde": 2.65,
+      "median_ade": 0.088
+    },
+    "timestamp": "2026-04-26T17:36:49"
+  }
+}
