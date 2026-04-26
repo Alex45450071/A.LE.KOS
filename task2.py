@@ -3,6 +3,7 @@ import os
 import json
 import numpy as np
 from sklearn.cluster import DBSCAN
+from sklearn.linear_model import RANSACRegressor
 from pyquaternion import Quaternion
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.data_classes import LidarPointCloud
@@ -28,36 +29,20 @@ GROUND_Y_PERCENTILE = 95
 GROUND_OFFSET_M = 0.15
 
 
-def _map_pointcloud_to_image(nusc, pointsensor_token, camera_token, min_dist=1.0):
+def _map_pointcloud_to_image(nusc, pointsensor_token, camera_token, min_dist=1.0, nsweeps=1):
     """
     Project LiDAR points into camera image and return:
     - points_2d: np.ndarray shape (2, N)
     - points_3d_cam: np.ndarray shape (3, N) in camera sensor frame
     """
     cam_sd = nusc.get("sample_data", camera_token)
-    lidar_sd = nusc.get("sample_data", pointsensor_token)
-
-    pc = LidarPointCloud.from_file(osp.join(nusc.dataroot, lidar_sd["filename"]))
-
-    # 1) LiDAR sensor -> ego (LiDAR timestamp)
-    lidar_cs = nusc.get("calibrated_sensor", lidar_sd["calibrated_sensor_token"])
-    pc.rotate(Quaternion(lidar_cs["rotation"]).rotation_matrix)
-    pc.translate(np.array(lidar_cs["translation"]))
-
-    # 2) Ego -> global
-    lidar_pose = nusc.get("ego_pose", lidar_sd["ego_pose_token"])
-    pc.rotate(Quaternion(lidar_pose["rotation"]).rotation_matrix)
-    pc.translate(np.array(lidar_pose["translation"]))
-
-    # 3) Global -> ego (camera timestamp)
-    cam_pose = nusc.get("ego_pose", cam_sd["ego_pose_token"])
-    pc.translate(-np.array(cam_pose["translation"]))
-    pc.rotate(Quaternion(cam_pose["rotation"]).rotation_matrix.T)
-
-    # 4) Ego -> camera sensor
+    sample = nusc.get("sample", cam_sd["sample_token"])
+    
     cam_cs = nusc.get("calibrated_sensor", cam_sd["calibrated_sensor_token"])
-    pc.translate(-np.array(cam_cs["translation"]))
-    pc.rotate(Quaternion(cam_cs["rotation"]).rotation_matrix.T)
+    
+    # from_file_multisweep automatically handles ego-motion compensation
+    # and transforms points from LiDAR sensor to Camera sensor frame.
+    pc, _ = LidarPointCloud.from_file_multisweep(nusc, sample, "LIDAR_TOP", cam_sd["channel"], nsweeps=nsweeps)
 
     points_3d_cam = pc.points[:3, :]
     depths = points_3d_cam[2, :]
@@ -276,25 +261,21 @@ def estimate_depth_trimmed_center(cluster_points, low_pct=DEPTH_TRIM_LOW, high_p
 
 def estimate_3d_size(cluster_points, is_side_view=False, cls_name="car"):
     """
-    Estimate [Width, Length, Height] of the vehicle.
-    For frustum clusters, we use a hybrid of LiDAR extent and class priors.
+    Estimate [Width, Length, Height] of the vehicle with Bayesian-style priors.
     """
-    # Standard NuScenes vehicle dimensions (W, L, H)
     class_priors = {
-        "car": [1.93, 4.62, 1.73],
-        "truck": [2.51, 6.93, 2.84],
+        "car": [1.8, 4.5, 1.5],
+        "truck": [2.5, 7.0, 3.0],
         "bus": [2.94, 11.0, 3.47],
     }
     
+    prior = class_priors.get(cls_name, class_priors["car"])
     if cluster_points.shape[0] < 5:
-        return np.array(class_priors.get(cls_name, class_priors["car"]))
+        return np.array(prior)
 
-    # Robust extent per axis
     low = np.percentile(cluster_points, 5, axis=0)
     high = np.percentile(cluster_points, 95, axis=0)
     extent = high - low
-    
-    prior = class_priors.get(cls_name, class_priors["car"])
     
     # Height is always Y (extent[1])
     h = np.clip(extent[1], prior[2] * 0.8, prior[2] * 1.2)
@@ -309,6 +290,7 @@ def estimate_3d_size(cluster_points, is_side_view=False, cls_name="car"):
         l = prior[1] # Fallback to prior for occluded length
         
     return np.array([w, l, h])
+
 
 
 
@@ -340,7 +322,7 @@ def get_car_gt_2d_and_3d(sample_data_token):
     return gt
 
 
-def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster_points=MIN_CLUSTER_POINTS):
+def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster_points=MIN_CLUSTER_POINTS, use_gt_boxes=False):
     """
     Task 2 metric proxy:
     - Match predicted 2D car boxes to GT 2D car boxes by best IoU (>= iou_threshold), one-to-one.
@@ -358,13 +340,19 @@ def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster
     total_matches = 0
 
     for idx, cam_front_token in enumerate(eval_tokens):
-        image_path = nusc.get_sample_data_path(cam_front_token)
-
-        pred_cars = get_refined_task2_car_detections(cam_front_token)
-        pred_boxes = [det[:4] for det in pred_cars]
+        gt_cars = get_car_gt_2d_and_3d(cam_front_token)
+        
+        if use_gt_boxes:
+            # Use Ground Truth 2D boxes instead of YOLO detections
+            pred_boxes = [g["box"] for g in gt_cars]
+            # Create dummy pred_cars with confidence 1.0
+            pred_cars = [[*b, 1.0, "car"] for b in pred_boxes]
+        else:
+            pred_cars = get_refined_task2_car_detections(cam_front_token)
+            pred_boxes = [det[:4] for det in pred_cars]
+            
         clusters_by_box = get_lidar_points_in_2d_box(cam_front_token, pred_boxes)
         clusters_by_box = apply_pre_refinement(clusters_by_box)
-        gt_cars = get_car_gt_2d_and_3d(cam_front_token)
 
         matched_gt = set()
         sample_errors_baseline = []
@@ -456,20 +444,22 @@ def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster
                 floating_cluster = cluster
                 
             # Vertical Refinement
-            z_min = np.min(floating_cluster[:, 1]) # Top of car
-            z_max = np.max(floating_cluster[:, 1]) # Bottom of car (above road)
-            refined_height = z_max - z_min
+            y_min_body = np.min(floating_cluster[:, 1]) # Top of car
+            y_max_body = np.max(floating_cluster[:, 1]) # Bottom of car (above road)
+            refined_height = y_max_body - y_min_body
             
             # Center Elevation
-            antigravity_y = z_min + (refined_height / 2.0)
+            antigravity_y = y_min_body + (refined_height / 2.0)
             
             # Apply antigravity to our best depth_trim estimate
-            pred_center_baseline = np.median(cluster, axis=0)
-            pred_center_robust = apply_fixed_offset(estimate_robust_center(cluster), smart_offset_val)
+            smart_offset_val = 1.0 if is_side_view else 2.1
             
             # Use floating_cluster for X/Z estimation, but manually set Y
             base_depth_center = apply_fixed_offset(estimate_depth_trimmed_center(floating_cluster), smart_offset_val)
             pred_center_depth_trim = np.array([base_depth_center[0], antigravity_y, base_depth_center[2]])
+            
+            pred_center_baseline = np.median(cluster, axis=0)
+            pred_center_robust = apply_fixed_offset(estimate_robust_center(cluster), smart_offset_val)
             
             error_baseline = float(np.linalg.norm(pred_center_baseline - gt_center))
             error_robust = float(np.linalg.norm(pred_center_robust - gt_center))

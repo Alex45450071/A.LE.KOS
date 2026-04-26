@@ -18,7 +18,7 @@ def run_eval(num_samples=20):
     eval_tokens = all_cam_tokens[:num_samples]
     
     print(f"Starting evaluation on {num_samples} samples...")
-    results = task2.evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5)
+    results = task2.evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, use_gt_boxes=False)
     
     print("\n--- Evaluation Summary ---")
     print(f"Matched Cars: {results['matched_cars_total']}")

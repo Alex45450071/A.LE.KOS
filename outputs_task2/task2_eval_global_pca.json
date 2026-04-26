@@ -1,0 +1,8 @@
+{
+  "samples_evaluated": 20,
+  "total_matched_cars": 29,
+  "skipped_empty_clusters": 78,
+  "skipped_iou": 6,
+  "mean_center_error_m": 7.671675346076049,
+  "mean_size_error_m": 3.084892733460447
+}
