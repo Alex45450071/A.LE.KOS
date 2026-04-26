@@ -1,6 +1,7 @@
 import os.path as osp
 import os
 import json
+import argparse
 import numpy as np
 from sklearn.cluster import DBSCAN
 from sklearn.linear_model import RANSACRegressor
@@ -28,6 +29,7 @@ ENABLE_DBSCAN_CLEANUP = True
 ENABLE_GROUND_REMOVAL = False
 GROUND_Y_PERCENTILE = 95
 GROUND_OFFSET_M = 0.15
+TASK2_FIXED_OFFSET_M = 1.8
 
 
 def _map_pointcloud_to_image(nusc, pointsensor_token, camera_token, min_dist=1.0, nsweeps=1):
@@ -327,7 +329,13 @@ def get_car_gt_2d_and_3d(sample_data_token):
     return gt
 
 
-def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster_points=MIN_CLUSTER_POINTS, use_gt_boxes=False):
+def evaluate_task2_mean_center_error(
+    eval_tokens,
+    iou_threshold=0.5,
+    min_cluster_points=MIN_CLUSTER_POINTS,
+    use_gt_boxes=False,
+    allow_gt_access=False,
+):
     """
     Task 2 metric proxy:
     - Match predicted 2D car boxes to GT 2D car boxes by best IoU (>= iou_threshold), one-to-one.
@@ -338,6 +346,15 @@ def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster
     - XYZ-trim robust median
     - depth-only (Z-trim) median
     """
+    if not allow_gt_access:
+        raise ValueError(
+            "GT evaluation is disabled. Pass allow_gt_access=True explicitly "
+            "only for offline auditing, never for real submission inference."
+        )
+
+    if use_gt_boxes and not allow_gt_access:
+        raise ValueError("GT boxes require explicit allow_gt_access=True.")
+
     all_errors_baseline = []
     all_errors_robust = []
     all_errors_depth_trim = []
@@ -414,7 +431,7 @@ def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster
             gt_center = gt_cars[best_gt_idx]["center"]
             
             # Apply fixed offset for robustness
-            fixed_offset = 2.1
+            fixed_offset = TASK2_FIXED_OFFSET_M
             
             def apply_fixed_offset(center, offset):
                 norm = np.linalg.norm(center)
@@ -466,14 +483,14 @@ def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster
             
             # 3. Radial Amodal Shift (2.1m): Robust average for NuScenes frustums
             # We use the apply_fixed_offset helper to shift along the camera ray
-            base_depth_center = apply_fixed_offset(base_median_trimmed, 2.1)
+            base_depth_center = apply_fixed_offset(base_median_trimmed, TASK2_FIXED_OFFSET_M)
             
             # Combine: X and Z from shifted center, Y from antigravity logic
             pred_center_depth_trim = np.array([base_depth_center[0], pred_y, base_depth_center[2]])
             
             # Keep baselines for comparison
             pred_center_baseline = np.median(cluster, axis=0)
-            pred_center_robust = apply_fixed_offset(estimate_robust_center(cluster), 2.1)
+            pred_center_robust = apply_fixed_offset(estimate_robust_center(cluster), TASK2_FIXED_OFFSET_M)
             
             error_baseline = float(np.linalg.norm(pred_center_baseline - gt_center))
             error_robust = float(np.linalg.norm(pred_center_robust - gt_center))
@@ -522,8 +539,37 @@ def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster
 
 
 if __name__ == "__main__":
-    # Batch export clusters for first 5 samples in first scene.
-    output_dir = "outputs_task2"
+    parser = argparse.ArgumentParser(description="Task2 LiDAR frustum pipeline")
+    parser.add_argument("--output-dir", default="outputs_task2", help="Where to save JSON outputs.")
+    parser.add_argument("--num-samples", type=int, default=50, help="Number of random CAM_FRONT samples.")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducible sampling.")
+    parser.add_argument(
+        "--run-gt-eval",
+        action="store_true",
+        help="Run GT-based center-error audit (offline diagnostics only).",
+    )
+    parser.add_argument(
+        "--allow-gt-access",
+        action="store_true",
+        help="Safety gate to allow any GT reads. Keep OFF for real inference runs.",
+    )
+    parser.add_argument(
+        "--use-gt-boxes-for-eval",
+        action="store_true",
+        help="Diagnostic-only upper-bound mode using GT 2D boxes during eval.",
+    )
+    args = parser.parse_args()
+
+    if args.use_gt_boxes_for_eval and not args.run_gt_eval:
+        raise ValueError("--use-gt-boxes-for-eval requires --run-gt-eval.")
+
+    if args.run_gt_eval and not args.allow_gt_access:
+        raise ValueError(
+            "Refusing GT evaluation without --allow-gt-access. "
+            "This protects against accidental leakage in normal runs."
+        )
+
+    output_dir = args.output_dir
     os.makedirs(output_dir, exist_ok=True)
     import random
     all_cam_tokens = []
@@ -534,12 +580,12 @@ if __name__ == "__main__":
             all_cam_tokens.append(samp["data"]["CAM_FRONT"])
             st = samp["next"]
             
-    # Fixed seed guarantees the same random subset across executions to compare properly
-    random.seed(42)  
+    # Fixed seed guarantees the same random subset across executions to compare properly.
+    random.seed(args.seed)
     random.shuffle(all_cam_tokens)
     
-    # Evaluate on 50 random samples across all scenes
-    eval_tokens = all_cam_tokens[:50]
+    # Evaluate on random samples across all scenes (prediction-only path).
+    eval_tokens = all_cam_tokens[: args.num_samples]
     
     summary = {
         "min_cluster_points_filter": MIN_CLUSTER_POINTS,
@@ -603,8 +649,19 @@ if __name__ == "__main__":
         json.dump(summary, f, indent=2)
     print(f"Saved summary: {summary_path}")
 
-    task2_eval = evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5)
-    eval_path = osp.join(output_dir, "task2_center_error_eval.json")
-    with open(eval_path, "w", encoding="utf-8") as f:
-        json.dump(task2_eval, f, indent=2)
-    print(f"Saved Task 2 center-error eval: {eval_path}")
+    if args.run_gt_eval:
+        task2_eval = evaluate_task2_mean_center_error(
+            eval_tokens,
+            iou_threshold=0.5,
+            use_gt_boxes=args.use_gt_boxes_for_eval,
+            allow_gt_access=args.allow_gt_access,
+        )
+        eval_path = osp.join(output_dir, "task2_center_error_eval.json")
+        with open(eval_path, "w", encoding="utf-8") as f:
+            json.dump(task2_eval, f, indent=2)
+        print(f"Saved Task 2 center-error eval: {eval_path}")
+    else:
+        print(
+            "GT evaluation skipped (prediction-only mode). "
+            "Use --run-gt-eval --allow-gt-access only for offline auditing."
+        )

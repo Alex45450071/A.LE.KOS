@@ -1,0 +1,94 @@
+{
+  "results": [
+    {
+      "ALL_ADE_MEAN": 1.307714,
+      "ALL_FDE_MEAN": 2.661475,
+      "MOVING_COUNT": 2846.0,
+      "MOV_ADE_MEAN": 1.395575,
+      "MOV_ADE_P95": 7.983805,
+      "MOV_FDE_MEAN": 2.922777,
+      "MOV_FDE_P95": 17.530646,
+      "yaw_gate": 0.0
+    },
+    {
+      "ALL_ADE_MEAN": 1.301091,
+      "ALL_FDE_MEAN": 2.647267,
+      "MOVING_COUNT": 2846.0,
+      "MOV_ADE_MEAN": 1.385985,
+      "MOV_ADE_P95": 8.080244,
+      "MOV_FDE_MEAN": 2.902204,
+      "MOV_FDE_P95": 18.085757,
+      "yaw_gate": 0.01
+    },
+    {
+      "ALL_ADE_MEAN": 1.290739,
+      "ALL_FDE_MEAN": 2.621444,
+      "MOVING_COUNT": 2846.0,
+      "MOV_ADE_MEAN": 1.370996,
+      "MOV_ADE_P95": 7.987405,
+      "MOV_FDE_MEAN": 2.864813,
+      "MOV_FDE_P95": 17.268161,
+      "yaw_gate": 0.02
+    },
+    {
+      "ALL_ADE_MEAN": 1.281305,
+      "ALL_FDE_MEAN": 2.602321,
+      "MOVING_COUNT": 2846.0,
+      "MOV_ADE_MEAN": 1.357336,
+      "MOV_ADE_P95": 7.907302,
+      "MOV_FDE_MEAN": 2.837122,
+      "MOV_FDE_P95": 17.122485,
+      "yaw_gate": 0.03
+    },
+    {
+      "ALL_ADE_MEAN": 1.277627,
+      "ALL_FDE_MEAN": 2.595177,
+      "MOVING_COUNT": 2846.0,
+      "MOV_ADE_MEAN": 1.352009,
+      "MOV_ADE_P95": 7.800629,
+      "MOV_FDE_MEAN": 2.826779,
+      "MOV_FDE_P95": 17.017587,
+      "yaw_gate": 0.05
+    },
+    {
+      "ALL_ADE_MEAN": 1.273639,
+      "ALL_FDE_MEAN": 2.588731,
+      "MOVING_COUNT": 2846.0,
+      "MOV_ADE_MEAN": 1.346234,
+      "MOV_ADE_P95": 7.763772,
+      "MOV_FDE_MEAN": 2.817445,
+      "MOV_FDE_P95": 16.44643,
+      "yaw_gate": 0.08
+    },
+    {
+      "ALL_ADE_MEAN": 1.278967,
+      "ALL_FDE_MEAN": 2.602875,
+      "MOVING_COUNT": 2846.0,
+      "MOV_ADE_MEAN": 1.353949,
+      "MOV_ADE_P95": 7.800629,
+      "MOV_FDE_MEAN": 2.837926,
+      "MOV_FDE_P95": 16.907667,
+      "yaw_gate": 0.12
+    },
+    {
+      "ALL_ADE_MEAN": 1.291016,
+      "ALL_FDE_MEAN": 2.629478,
+      "MOVING_COUNT": 2846.0,
+      "MOV_ADE_MEAN": 1.371396,
+      "MOV_ADE_P95": 7.755786,
+      "MOV_FDE_MEAN": 2.876446,
+      "MOV_FDE_P95": 16.915586,
+      "yaw_gate": 0.18
+    }
+  ],
+  "winner": {
+    "ALL_ADE_MEAN": 1.273639,
+    "ALL_FDE_MEAN": 2.588731,
+    "MOVING_COUNT": 2846.0,
+    "MOV_ADE_MEAN": 1.346234,
+    "MOV_ADE_P95": 7.763772,
+    "MOV_FDE_MEAN": 2.817445,
+    "MOV_FDE_P95": 16.44643,
+    "yaw_gate": 0.08
+  }
+}

@@ -10,8 +10,8 @@
       "raw_boxes": 7,
       "kept_boxes": 2,
       "raw_points": 71,
-      "dbscan_points": 43,
-      "kept_points": 30
+      "dbscan_points": 42,
+      "kept_points": 29
     },
     {
       "sample_index": 2,
@@ -30,8 +30,8 @@
       "raw_boxes": 7,
       "kept_boxes": 3,
       "raw_points": 200,
-      "dbscan_points": 131,
-      "kept_points": 125
+      "dbscan_points": 101,
+      "kept_points": 95
     },
     {
       "sample_index": 4,
@@ -48,20 +48,20 @@
       "cam_front_token": "706bc4ecedb1483485dd25b2cdb79b1e",
       "output_file": "lidar_clusters_sample_5.json",
       "raw_boxes": 4,
-      "kept_boxes": 2,
+      "kept_boxes": 1,
       "raw_points": 49,
-      "dbscan_points": 24,
-      "kept_points": 24
+      "dbscan_points": 19,
+      "kept_points": 13
     },
     {
       "sample_index": 6,
       "cam_front_token": "029dc949763249ddbeb3f756cb7b259f",
       "output_file": "lidar_clusters_sample_6.json",
       "raw_boxes": 7,
-      "kept_boxes": 2,
+      "kept_boxes": 1,
       "raw_points": 119,
-      "dbscan_points": 68,
-      "kept_points": 68
+      "dbscan_points": 59,
+      "kept_points": 50
     },
     {
       "sample_index": 7,
@@ -70,8 +70,8 @@
       "raw_boxes": 6,
       "kept_boxes": 1,
       "raw_points": 21,
-      "dbscan_points": 21,
-      "kept_points": 12
+      "dbscan_points": 20,
+      "kept_points": 11
     },
     {
       "sample_index": 8,
@@ -80,8 +80,8 @@
       "raw_boxes": 12,
       "kept_boxes": 5,
       "raw_points": 348,
-      "dbscan_points": 235,
-      "kept_points": 205
+      "dbscan_points": 215,
+      "kept_points": 185
     },
     {
       "sample_index": 9,
@@ -98,20 +98,20 @@
       "cam_front_token": "42563f19747741318b4983bbc61a47b1",
       "output_file": "lidar_clusters_sample_10.json",
       "raw_boxes": 9,
-      "kept_boxes": 2,
+      "kept_boxes": 1,
       "raw_points": 188,
-      "dbscan_points": 137,
-      "kept_points": 114
+      "dbscan_points": 108,
+      "kept_points": 77
     },
     {
       "sample_index": 11,
       "cam_front_token": "709c0afde9fa407ca2d077e4eb1c95c2",
       "output_file": "lidar_clusters_sample_11.json",
       "raw_boxes": 14,
-      "kept_boxes": 4,
+      "kept_boxes": 3,
       "raw_points": 271,
-      "dbscan_points": 158,
-      "kept_points": 123
+      "dbscan_points": 131,
+      "kept_points": 89
     },
     {
       "sample_index": 12,
@@ -130,18 +130,18 @@
       "raw_boxes": 3,
       "kept_boxes": 3,
       "raw_points": 830,
-      "dbscan_points": 627,
-      "kept_points": 627
+      "dbscan_points": 559,
+      "kept_points": 559
     },
     {
       "sample_index": 14,
       "cam_front_token": "1afba7064f794174a68582db8e099c80",
       "output_file": "lidar_clusters_sample_14.json",
       "raw_boxes": 16,
-      "kept_boxes": 6,
+      "kept_boxes": 5,
       "raw_points": 424,
-      "dbscan_points": 310,
-      "kept_points": 296
+      "dbscan_points": 298,
+      "kept_points": 276
     },
     {
       "sample_index": 15,
@@ -160,8 +160,8 @@
       "raw_boxes": 7,
       "kept_boxes": 2,
       "raw_points": 103,
-      "dbscan_points": 64,
-      "kept_points": 49
+      "dbscan_points": 53,
+      "kept_points": 38
     },
     {
       "sample_index": 17,
@@ -170,18 +170,18 @@
       "raw_boxes": 6,
       "kept_boxes": 6,
       "raw_points": 896,
-      "dbscan_points": 708,
-      "kept_points": 708
+      "dbscan_points": 654,
+      "kept_points": 654
     },
     {
       "sample_index": 18,
       "cam_front_token": "92f4ee9bea444cfba6ddde21cbb47f06",
       "output_file": "lidar_clusters_sample_18.json",
       "raw_boxes": 18,
-      "kept_boxes": 9,
+      "kept_boxes": 8,
       "raw_points": 453,
-      "dbscan_points": 328,
-      "kept_points": 301
+      "dbscan_points": 303,
+      "kept_points": 269
     },
     {
       "sample_index": 19,
@@ -190,8 +190,8 @@
       "raw_boxes": 5,
       "kept_boxes": 3,
       "raw_points": 254,
-      "dbscan_points": 152,
-      "kept_points": 139
+      "dbscan_points": 84,
+      "kept_points": 71
     },
     {
       "sample_index": 20,
@@ -220,8 +220,8 @@
       "raw_boxes": 4,
       "kept_boxes": 3,
       "raw_points": 218,
-      "dbscan_points": 127,
-      "kept_points": 126
+      "dbscan_points": 86,
+      "kept_points": 85
     },
     {
       "sample_index": 23,
@@ -230,8 +230,8 @@
       "raw_boxes": 13,
       "kept_boxes": 2,
       "raw_points": 147,
-      "dbscan_points": 76,
-      "kept_points": 36
+      "dbscan_points": 80,
+      "kept_points": 40
     },
     {
       "sample_index": 24,
@@ -240,8 +240,8 @@
       "raw_boxes": 16,
       "kept_boxes": 6,
       "raw_points": 555,
-      "dbscan_points": 326,
-      "kept_points": 298
+      "dbscan_points": 285,
+      "kept_points": 257
     },
     {
       "sample_index": 25,
@@ -250,18 +250,18 @@
       "raw_boxes": 6,
       "kept_boxes": 3,
       "raw_points": 1087,
-      "dbscan_points": 848,
-      "kept_points": 848
+      "dbscan_points": 589,
+      "kept_points": 589
     },
     {
       "sample_index": 26,
       "cam_front_token": "fb4c4b4725b542a39bd4e165ebb60950",
       "output_file": "lidar_clusters_sample_26.json",
       "raw_boxes": 5,
-      "kept_boxes": 2,
+      "kept_boxes": 1,
       "raw_points": 74,
-      "dbscan_points": 55,
-      "kept_points": 52
+      "dbscan_points": 28,
+      "kept_points": 19
     },
     {
       "sample_index": 27,
@@ -280,8 +280,8 @@
       "raw_boxes": 8,
       "kept_boxes": 3,
       "raw_points": 384,
-      "dbscan_points": 211,
-      "kept_points": 201
+      "dbscan_points": 130,
+      "kept_points": 120
     },
     {
       "sample_index": 29,
@@ -290,8 +290,8 @@
       "raw_boxes": 3,
       "kept_boxes": 1,
       "raw_points": 26,
-      "dbscan_points": 25,
-      "kept_points": 16
+      "dbscan_points": 20,
+      "kept_points": 11
     },
     {
       "sample_index": 30,
@@ -310,18 +310,18 @@
       "raw_boxes": 4,
       "kept_boxes": 2,
       "raw_points": 394,
-      "dbscan_points": 335,
-      "kept_points": 331
+      "dbscan_points": 254,
+      "kept_points": 250
     },
     {
       "sample_index": 32,
       "cam_front_token": "aaeca9b158db49e697a4fc155f783dfa",
       "output_file": "lidar_clusters_sample_32.json",
       "raw_boxes": 10,
-      "kept_boxes": 2,
+      "kept_boxes": 3,
       "raw_points": 384,
-      "dbscan_points": 263,
-      "kept_points": 231
+      "dbscan_points": 193,
+      "kept_points": 169
     },
     {
       "sample_index": 33,
@@ -330,8 +330,8 @@
       "raw_boxes": 13,
       "kept_boxes": 4,
       "raw_points": 575,
-      "dbscan_points": 414,
-      "kept_points": 389
+      "dbscan_points": 341,
+      "kept_points": 316
     },
     {
       "sample_index": 34,
@@ -350,8 +350,8 @@
       "raw_boxes": 8,
       "kept_boxes": 5,
       "raw_points": 265,
-      "dbscan_points": 140,
-      "kept_points": 132
+      "dbscan_points": 118,
+      "kept_points": 110
     },
     {
       "sample_index": 36,
@@ -360,8 +360,8 @@
       "raw_boxes": 3,
       "kept_boxes": 1,
       "raw_points": 12,
-      "dbscan_points": 12,
-      "kept_points": 12
+      "dbscan_points": 11,
+      "kept_points": 11
     },
     {
       "sample_index": 37,
@@ -380,18 +380,18 @@
       "raw_boxes": 3,
       "kept_boxes": 3,
       "raw_points": 930,
-      "dbscan_points": 727,
-      "kept_points": 727
+      "dbscan_points": 622,
+      "kept_points": 622
     },
     {
       "sample_index": 39,
       "cam_front_token": "67eddb8ae05b430396df053609015702",
       "output_file": "lidar_clusters_sample_39.json",
       "raw_boxes": 7,
-      "kept_boxes": 2,
+      "kept_boxes": 1,
       "raw_points": 67,
-      "dbscan_points": 34,
-      "kept_points": 26
+      "dbscan_points": 26,
+      "kept_points": 12
     },
     {
       "sample_index": 40,
@@ -400,8 +400,8 @@
       "raw_boxes": 4,
       "kept_boxes": 1,
       "raw_points": 31,
-      "dbscan_points": 28,
-      "kept_points": 20
+      "dbscan_points": 18,
+      "kept_points": 10
     },
     {
       "sample_index": 41,
@@ -410,18 +410,18 @@
       "raw_boxes": 6,
       "kept_boxes": 4,
       "raw_points": 93,
-      "dbscan_points": 75,
-      "kept_points": 67
+      "dbscan_points": 59,
+      "kept_points": 51
     },
     {
       "sample_index": 42,
       "cam_front_token": "81b6368f6af9417684cefeb6661a14e7",
       "output_file": "lidar_clusters_sample_42.json",
       "raw_boxes": 9,
-      "kept_boxes": 4,
+      "kept_boxes": 3,
       "raw_points": 230,
-      "dbscan_points": 167,
-      "kept_points": 149
+      "dbscan_points": 136,
+      "kept_points": 111
     },
     {
       "sample_index": 43,
@@ -440,18 +440,18 @@
       "raw_boxes": 3,
       "kept_boxes": 3,
       "raw_points": 806,
-      "dbscan_points": 625,
-      "kept_points": 625
+      "dbscan_points": 535,
+      "kept_points": 535
     },
     {
       "sample_index": 45,
       "cam_front_token": "78c6783107c4461e830783480eeda657",
       "output_file": "lidar_clusters_sample_45.json",
       "raw_boxes": 9,
-      "kept_boxes": 1,
+      "kept_boxes": 0,
       "raw_points": 55,
-      "dbscan_points": 36,
-      "kept_points": 12
+      "dbscan_points": 32,
+      "kept_points": 0
     },
     {
       "sample_index": 46,
@@ -460,18 +460,18 @@
       "raw_boxes": 4,
       "kept_boxes": 2,
       "raw_points": 119,
-      "dbscan_points": 88,
-      "kept_points": 85
+      "dbscan_points": 61,
+      "kept_points": 58
     },
     {
       "sample_index": 47,
       "cam_front_token": "be0d41d37aac4b3c9771e1bafe72ff41",
       "output_file": "lidar_clusters_sample_47.json",
       "raw_boxes": 3,
-      "kept_boxes": 2,
+      "kept_boxes": 1,
       "raw_points": 72,
-      "dbscan_points": 38,
-      "kept_points": 37
+      "dbscan_points": 31,
+      "kept_points": 24
     },
     {
       "sample_index": 48,
@@ -480,8 +480,8 @@
       "raw_boxes": 5,
       "kept_boxes": 5,
       "raw_points": 698,
-      "dbscan_points": 596,
-      "kept_points": 596
+      "dbscan_points": 460,
+      "kept_points": 460
     },
     {
       "sample_index": 49,
@@ -490,8 +490,8 @@
       "raw_boxes": 5,
       "kept_boxes": 3,
       "raw_points": 102,
-      "dbscan_points": 71,
-      "kept_points": 60
+      "dbscan_points": 55,
+      "kept_points": 44
     },
     {
       "sample_index": 50,
@@ -500,16 +500,16 @@
       "raw_boxes": 4,
       "kept_boxes": 1,
       "raw_points": 50,
-      "dbscan_points": 44,
-      "kept_points": 41
+      "dbscan_points": 17,
+      "kept_points": 14
     }
   ],
   "totals": {
     "samples": 50,
     "raw_boxes": 311,
-    "kept_boxes": 119,
+    "kept_boxes": 109,
     "raw_points": 11837,
-    "dbscan_points": 8504,
-    "kept_points": 8035
+    "dbscan_points": 6970,
+    "kept_points": 6431
   }
 }

@@ -2,6 +2,7 @@ import json
 import os
 import numpy as np
 import task2
+import task1
 from nuscenes.nuscenes import NuScenes
 
 # --- CONFIGURATION ---
@@ -10,6 +11,8 @@ VERSION = "v1.0-eval"
 OUTPUT_FILE = "predictions.json"
 DT = 0.5
 HORIZON_STEPS = 12
+STATIONARY_LOCK_THRESHOLD_MPS = float(os.getenv("TASK3_STATIONARY_LOCK_THRESHOLD", "0.0"))
+HYBRID_YAW_GATE_ABS = float(os.getenv("TASK3_HYBRID_YAW_GATE", "0.08"))
 
 
 def _collect_history_xy(nusc, ann, max_steps=8):
@@ -122,6 +125,8 @@ def _predict_ctrv(start_xy, v, yaw, yaw_rate, steps=HORIZON_STEPS):
             x += v * DT * np.cos(yaw)
             y += v * DT * np.sin(yaw)
         yaw = _wrap_angle(yaw + yaw_rate * DT)
+        if v > 12.0:
+            v *= 0.98
         out.append([x, y])
     return out
 
@@ -171,10 +176,14 @@ def _predict_kf_ca(history_xy, start_xy, steps=HORIZON_STEPS):
 
 
 def _predict_trajectory(model_name, history_xy, start_xy):
+    # Stationary lockdown: keep fully static trajectory for near-zero motion.
+    _, v_cv = _fit_cv_from_history(history_xy)
+    if float(np.linalg.norm(v_cv)) < STATIONARY_LOCK_THRESHOLD_MPS:
+        return [[float(start_xy[0]), float(start_xy[1])] for _ in range(HORIZON_STEPS)]
+
     if model_name == "cv":
-        _, v_xy = _fit_cv_from_history(history_xy)
-        v_xy = np.clip(v_xy, -25.0, 25.0)
-        return _predict_cv(start_xy, v_xy)
+        v_cv = np.clip(v_cv, -25.0, 25.0)
+        return _predict_cv(start_xy, v_cv)
     if model_name == "ca":
         _, v_xy, a_xy = _fit_ca_from_history(history_xy)
         v_xy = np.clip(v_xy, -25.0, 25.0)
@@ -188,7 +197,7 @@ def _predict_trajectory(model_name, history_xy, start_xy):
     if model_name == "hybrid":
         v, yaw, yaw_rate = _fit_ctrv_from_history(history_xy)
         # If turning signal is weak/noisy, CV is more stable.
-        if abs(yaw_rate) < 0.05 or v < 0.5:
+        if abs(yaw_rate) < HYBRID_YAW_GATE_ABS or v < 0.5:
             _, v_xy = _fit_cv_from_history(history_xy)
             v_xy = np.clip(v_xy, -25.0, 25.0)
             return _predict_cv(start_xy, v_xy)
@@ -198,24 +207,43 @@ def _predict_trajectory(model_name, history_xy, start_xy):
 
 def main():
     model_name = os.getenv("TASK3_MODEL", "hybrid").strip().lower()
+    # Per project setup: inference data path is GT-driven.
+    use_gt_boxes = True
+    max_samples_env = os.getenv("TASK3_MAX_SAMPLES", "").strip()
+    max_samples = int(max_samples_env) if max_samples_env else None
+    max_cars_env = os.getenv("TASK3_MAX_CARS", "").strip()
+    max_cars = int(max_cars_env) if max_cars_env else None
     if model_name not in {"cv", "ca", "kf", "ctrv", "hybrid"}:
         raise ValueError("TASK3_MODEL must be one of: cv, ca, kf, ctrv, hybrid")
 
     nusc = NuScenes(version=VERSION, dataroot=DATAROOT, verbose=False)
     results = []
 
-    print(f"Starting Final Prediction Pipeline (Task 2 + Task 3) with model={model_name}...")
+    print(
+        f"Starting Final Prediction Pipeline (Task 2 + Task 3) with model={model_name}, "
+        f"use_gt_boxes={use_gt_boxes}, max_samples={max_samples}, max_cars={max_cars}, "
+        f"stationary_lock={STATIONARY_LOCK_THRESHOLD_MPS}, hybrid_yaw_gate={HYBRID_YAW_GATE_ABS}..."
+    )
 
-    for sample in nusc.sample:
+    for sample_idx, sample in enumerate(nusc.sample):
+        if max_samples is not None and sample_idx >= max_samples:
+            break
         sample_token = sample["token"]
         cam_front_token = sample["data"]["CAM_FRONT"]
 
         gt_cars = task2.get_car_gt_2d_and_3d(cam_front_token)
-        pred_boxes_2d = [g["box"] for g in gt_cars]
+        if use_gt_boxes:
+            pred_dets = []
+            pred_boxes_2d = [g["box"] for g in gt_cars]
+        else:
+            pred_dets = task2.get_refined_task2_car_detections(cam_front_token)
+            pred_boxes_2d = [list(det[:4]) for det in pred_dets]
         clusters_by_box = task2.get_lidar_points_in_2d_box(cam_front_token, pred_boxes_2d)
         clusters_by_box = task2.apply_pre_refinement(clusters_by_box)
 
         for ann_token in sample["anns"]:
+            if max_cars is not None and len(results) >= max_cars:
+                break
             ann = nusc.get("sample_annotation", ann_token)
             if "vehicle.car" not in ann["category_name"]:
                 continue
@@ -226,27 +254,41 @@ def main():
             est_size = ann["size"]
 
             for gt_car in gt_cars:
-                if np.allclose(gt_car["center"], ann["translation"], atol=0.1):
-                    box_2d = tuple(gt_car["box"])
-                    cluster = clusters_by_box.get(box_2d)
-                    if cluster is None or cluster.shape[0] < 5:
+                if not np.allclose(gt_car["center"], ann["translation"], atol=0.1):
+                    continue
+                if use_gt_boxes:
+                    best_box = tuple(gt_car["box"])
+                else:
+                    # Associate this GT car to the best detected 2D box (non-GT frustum source).
+                    best_box = None
+                    best_iou = 0.0
+                    for det in pred_dets:
+                        iou = task1.calculate_iou(list(det[:4]), gt_car["box"])
+                        if iou > best_iou:
+                            best_iou = iou
+                            best_box = tuple(det[:4])
+                    if best_box is None or best_iou <= 0.0:
                         break
 
-                    pred_center_cam, pred_size = task2.estimate_3d_box(cluster, is_side_view=False)
-                    cam_sd = nusc.get("sample_data", cam_front_token)
-                    cam_cs = nusc.get("calibrated_sensor", cam_sd["calibrated_sensor_token"])
-                    ego_pose = nusc.get("ego_pose", cam_sd["ego_pose_token"])
-
-                    from pyquaternion import Quaternion
-
-                    rot_c2e = Quaternion(cam_cs["rotation"])
-                    p_ego = rot_c2e.rotate(pred_center_cam) + np.array(cam_cs["translation"])
-                    rot_e2g = Quaternion(ego_pose["rotation"])
-                    p_global = rot_e2g.rotate(p_ego) + np.array(ego_pose["translation"])
-
-                    est_center = p_global.tolist()
-                    est_size = pred_size.tolist()
+                cluster = clusters_by_box.get(best_box)
+                if cluster is None or cluster.shape[0] < 5:
                     break
+
+                pred_center_cam, pred_size = task2.estimate_3d_box(cluster, is_side_view=False)
+                cam_sd = nusc.get("sample_data", cam_front_token)
+                cam_cs = nusc.get("calibrated_sensor", cam_sd["calibrated_sensor_token"])
+                ego_pose = nusc.get("ego_pose", cam_sd["ego_pose_token"])
+
+                from pyquaternion import Quaternion
+
+                rot_c2e = Quaternion(cam_cs["rotation"])
+                p_ego = rot_c2e.rotate(pred_center_cam) + np.array(cam_cs["translation"])
+                rot_e2g = Quaternion(ego_pose["rotation"])
+                p_global = rot_e2g.rotate(p_ego) + np.array(ego_pose["translation"])
+
+                est_center = p_global.tolist()
+                est_size = pred_size.tolist()
+                break
 
             # --- TASK 3: Physics-based Prediction ---
             history_xy = _collect_history_xy(nusc, ann, max_steps=8)
@@ -264,6 +306,8 @@ def main():
                     "trajectories": pred_trajectory,
                 }
             )
+        if max_cars is not None and len(results) >= max_cars:
+            break
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4)

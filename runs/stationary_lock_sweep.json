@@ -1,0 +1,104 @@
+{
+  "results": [
+    {
+      "ALL_ADE_MEAN": 1.277627,
+      "ALL_FDE_MEAN": 2.595177,
+      "MOVING_COUNT": 2846.0,
+      "MOV_ADE_MEAN": 1.352009,
+      "MOV_ADE_P95": 7.800629,
+      "MOV_FDE_MEAN": 2.826779,
+      "MOV_FDE_P95": 17.017587,
+      "threshold": 0.0
+    },
+    {
+      "ALL_ADE_MEAN": 1.277719,
+      "ALL_FDE_MEAN": 2.595405,
+      "MOVING_COUNT": 2415.0,
+      "MOV_ADE_MEAN": 1.583618,
+      "MOV_ADE_P95": 8.744018,
+      "MOV_FDE_MEAN": 3.312528,
+      "MOV_FDE_P95": 19.386809,
+      "threshold": 0.01
+    },
+    {
+      "ALL_ADE_MEAN": 1.276794,
+      "ALL_FDE_MEAN": 2.593551,
+      "MOVING_COUNT": 2132.0,
+      "MOV_ADE_MEAN": 1.780522,
+      "MOV_ADE_P95": 9.581458,
+      "MOV_FDE_MEAN": 3.724506,
+      "MOV_FDE_P95": 20.650694,
+      "threshold": 0.02
+    },
+    {
+      "ALL_ADE_MEAN": 1.275236,
+      "ALL_FDE_MEAN": 2.59036,
+      "MOVING_COUNT": 1701.0,
+      "MOV_ADE_MEAN": 2.197881,
+      "MOV_ADE_P95": 10.623587,
+      "MOV_FDE_MEAN": 4.600417,
+      "MOV_FDE_P95": 23.114229,
+      "threshold": 0.04
+    },
+    {
+      "ALL_ADE_MEAN": 1.272427,
+      "ALL_FDE_MEAN": 2.583311,
+      "MOVING_COUNT": 1405.0,
+      "MOV_ADE_MEAN": 2.633265,
+      "MOV_ADE_P95": 11.290125,
+      "MOV_FDE_MEAN": 5.520763,
+      "MOV_FDE_P95": 25.112181,
+      "threshold": 0.06
+    },
+    {
+      "ALL_ADE_MEAN": 1.267984,
+      "ALL_FDE_MEAN": 2.574343,
+      "MOVING_COUNT": 1210.0,
+      "MOV_ADE_MEAN": 3.022861,
+      "MOV_ADE_P95": 11.671239,
+      "MOV_FDE_MEAN": 6.348607,
+      "MOV_FDE_P95": 26.181423,
+      "threshold": 0.08
+    },
+    {
+      "ALL_ADE_MEAN": 1.266498,
+      "ALL_FDE_MEAN": 2.570736,
+      "MOVING_COUNT": 1129.0,
+      "MOV_ADE_MEAN": 3.223053,
+      "MOV_ADE_P95": 11.979867,
+      "MOV_FDE_MEAN": 6.771387,
+      "MOV_FDE_P95": 26.904836,
+      "threshold": 0.1
+    },
+    {
+      "ALL_ADE_MEAN": 1.262582,
+      "ALL_FDE_MEAN": 2.56248,
+      "MOVING_COUNT": 999.0,
+      "MOV_ADE_MEAN": 3.596207,
+      "MOV_ADE_P95": 12.185543,
+      "MOV_FDE_MEAN": 7.567562,
+      "MOV_FDE_P95": 28.075555,
+      "threshold": 0.15
+    },
+    {
+      "ALL_ADE_MEAN": 1.259894,
+      "ALL_FDE_MEAN": 2.557206,
+      "MOVING_COUNT": 958.0,
+      "MOV_ADE_MEAN": 3.728137,
+      "MOV_ADE_P95": 12.527911,
+      "MOV_FDE_MEAN": 7.849711,
+      "MOV_FDE_P95": 28.459627,
+      "threshold": 0.2
+    }
+  ],
+  "winner": {
+    "ALL_ADE_MEAN": 1.277627,
+    "ALL_FDE_MEAN": 2.595177,
+    "MOVING_COUNT": 2846.0,
+    "MOV_ADE_MEAN": 1.352009,
+    "MOV_ADE_P95": 7.800629,
+    "MOV_FDE_MEAN": 2.826779,
+    "MOV_FDE_P95": 17.017587,
+    "threshold": 0.0
+  }
+}
