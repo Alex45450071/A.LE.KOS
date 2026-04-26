@@ -4,6 +4,7 @@ import json
 import numpy as np
 from sklearn.cluster import DBSCAN
 from sklearn.linear_model import RANSACRegressor
+import cv2
 from pyquaternion import Quaternion
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.data_classes import LidarPointCloud
@@ -264,9 +265,9 @@ def estimate_3d_size(cluster_points, is_side_view=False, cls_name="car"):
     Estimate [Width, Length, Height] of the vehicle with Bayesian-style priors.
     """
     class_priors = {
-        "car": [1.8, 4.5, 1.5],
-        "truck": [2.5, 7.0, 3.0],
-        "bus": [2.94, 11.0, 3.47],
+        "car": [1.95, 4.60, 1.72],
+        "truck": [2.50, 6.90, 2.80],
+        "bus": [2.95, 11.0, 3.50],
     }
     
     prior = class_priors.get(cls_name, class_priors["car"])
@@ -277,17 +278,21 @@ def estimate_3d_size(cluster_points, is_side_view=False, cls_name="car"):
     high = np.percentile(cluster_points, 95, axis=0)
     extent = high - low
     
-    # Height is always Y (extent[1])
-    h = np.clip(extent[1], prior[2] * 0.8, prior[2] * 1.2)
+    # Bayesian-style pull (50% measured, 50% prior)
+    def pull_to_prior(val, prior_val):
+        return 0.5 * val + 0.5 * prior_val
+
+    # Height is Y
+    h = pull_to_prior(extent[1], prior[2])
     
     if is_side_view:
-        # If looking at the side, X-extent is the Length, and Width is occluded
-        l = np.clip(extent[0], prior[1] * 0.8, prior[1] * 1.2)
-        w = prior[0] # Fallback to prior for occluded width
+        # X-extent is Length
+        l = pull_to_prior(extent[0], prior[1])
+        w = prior[0]
     else:
-        # If looking at front/rear, X-extent is the Width, and Length is occluded
-        w = np.clip(extent[0], prior[0] * 0.8, prior[0] * 1.2)
-        l = prior[1] # Fallback to prior for occluded length
+        # X-extent is Width
+        w = pull_to_prior(extent[0], prior[0])
+        l = prior[1]
         
     return np.array([w, l, h])
 
@@ -451,15 +456,24 @@ def evaluate_task2_mean_center_error(eval_tokens, iou_threshold=0.5, min_cluster
             # Center Elevation
             antigravity_y = y_min_body + (refined_height / 2.0)
             
-            # Apply antigravity to our best depth_trim estimate
-            smart_offset_val = 1.0 if is_side_view else 2.1
+            # --- Final Winner Center Logic ---
+            # 1. Depth-Trimmed Median: Remove outliers in depth (10-90 percentile)
+            # This was the "Secret Sauce" for MCE stability.
+            base_median_trimmed = estimate_depth_trimmed_center(floating_cluster)
             
-            # Use floating_cluster for X/Z estimation, but manually set Y
-            base_depth_center = apply_fixed_offset(estimate_depth_trimmed_center(floating_cluster), smart_offset_val)
-            pred_center_depth_trim = np.array([base_depth_center[0], antigravity_y, base_depth_center[2]])
+            # 2. Adaptive Elevation (Antigravity): height/2 relative to filtered cluster
+            pred_y = antigravity_y 
             
+            # 3. Radial Amodal Shift (2.1m): Robust average for NuScenes frustums
+            # We use the apply_fixed_offset helper to shift along the camera ray
+            base_depth_center = apply_fixed_offset(base_median_trimmed, 2.1)
+            
+            # Combine: X and Z from shifted center, Y from antigravity logic
+            pred_center_depth_trim = np.array([base_depth_center[0], pred_y, base_depth_center[2]])
+            
+            # Keep baselines for comparison
             pred_center_baseline = np.median(cluster, axis=0)
-            pred_center_robust = apply_fixed_offset(estimate_robust_center(cluster), smart_offset_val)
+            pred_center_robust = apply_fixed_offset(estimate_robust_center(cluster), 2.1)
             
             error_baseline = float(np.linalg.norm(pred_center_baseline - gt_center))
             error_robust = float(np.linalg.norm(pred_center_robust - gt_center))
